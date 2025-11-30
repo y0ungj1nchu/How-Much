@@ -38,6 +38,10 @@
             this.lblAmount = new System.Windows.Forms.Label();
             this.txtAmount = new System.Windows.Forms.TextBox();
             this.listView1 = new System.Windows.Forms.ListView();
+            this.columnHeader1 = ((System.Windows.Forms.ColumnHeader)(new System.Windows.Forms.ColumnHeader()));
+            this.columnHeader2 = ((System.Windows.Forms.ColumnHeader)(new System.Windows.Forms.ColumnHeader()));
+            this.columnHeader3 = ((System.Windows.Forms.ColumnHeader)(new System.Windows.Forms.ColumnHeader()));
+            this.columnHeader4 = ((System.Windows.Forms.ColumnHeader)(new System.Windows.Forms.ColumnHeader()));
             this.panelTop.SuspendLayout();
             this.panelInput.SuspendLayout();
             this.SuspendLayout();
@@ -56,15 +60,16 @@
             // 
             // cmbMonth
             // 
-            this.cmbMonth.CustomFormat = "yyyy/MM";
+            this.cmbMonth.CustomFormat = "yyyy-MM";
             this.cmbMonth.Font = new System.Drawing.Font("맑은 고딕", 10F);
             this.cmbMonth.Format = System.Windows.Forms.DateTimePickerFormat.Custom;
             this.cmbMonth.Location = new System.Drawing.Point(1026, 22);
             this.cmbMonth.Margin = new System.Windows.Forms.Padding(4);
             this.cmbMonth.Name = "cmbMonth";
+            this.cmbMonth.RightToLeft = System.Windows.Forms.RightToLeft.No;
             this.cmbMonth.Size = new System.Drawing.Size(130, 34);
             this.cmbMonth.TabIndex = 6;
-            this.cmbMonth.Value = new System.DateTime(2025, 11, 24, 0, 0, 0, 0);
+            this.cmbMonth.Value = new System.DateTime(2025, 11, 27, 0, 0, 0, 0);
             this.cmbMonth.ValueChanged += new System.EventHandler(this.cmbMonth_ValueChanged);
             // 
             // lblTitle
@@ -102,7 +107,7 @@
             // cmbMainCategory
             // 
             this.cmbMainCategory.FormattingEnabled = true;
-            this.cmbMainCategory.Location = new System.Drawing.Point(199, 55);
+            this.cmbMainCategory.Location = new System.Drawing.Point(198, 41);
             this.cmbMainCategory.Name = "cmbMainCategory";
             this.cmbMainCategory.Size = new System.Drawing.Size(302, 26);
             this.cmbMainCategory.TabIndex = 12;
@@ -111,7 +116,7 @@
             // 
             this.lblMemo.AutoSize = true;
             this.lblMemo.Font = new System.Drawing.Font("맑은 고딕", 10F);
-            this.lblMemo.Location = new System.Drawing.Point(534, 19);
+            this.lblMemo.Location = new System.Drawing.Point(523, 30);
             this.lblMemo.Margin = new System.Windows.Forms.Padding(4, 0, 4, 0);
             this.lblMemo.Name = "lblMemo";
             this.lblMemo.Size = new System.Drawing.Size(52, 28);
@@ -121,7 +126,7 @@
             // txtMemo
             // 
             this.txtMemo.Font = new System.Drawing.Font("맑은 고딕", 10F);
-            this.txtMemo.Location = new System.Drawing.Point(534, 64);
+            this.txtMemo.Location = new System.Drawing.Point(523, 75);
             this.txtMemo.Margin = new System.Windows.Forms.Padding(4);
             this.txtMemo.Multiline = true;
             this.txtMemo.Name = "txtMemo";
@@ -176,7 +181,7 @@
             // 
             this.lblCategory.AutoSize = true;
             this.lblCategory.Font = new System.Drawing.Font("맑은 고딕", 10F);
-            this.lblCategory.Location = new System.Drawing.Point(64, 50);
+            this.lblCategory.Location = new System.Drawing.Point(63, 36);
             this.lblCategory.Margin = new System.Windows.Forms.Padding(4, 0, 4, 0);
             this.lblCategory.Name = "lblCategory";
             this.lblCategory.Size = new System.Drawing.Size(92, 28);
@@ -187,7 +192,7 @@
             // 
             this.lblAmount.AutoSize = true;
             this.lblAmount.Font = new System.Drawing.Font("맑은 고딕", 10F);
-            this.lblAmount.Location = new System.Drawing.Point(64, 122);
+            this.lblAmount.Location = new System.Drawing.Point(63, 108);
             this.lblAmount.Margin = new System.Windows.Forms.Padding(4, 0, 4, 0);
             this.lblAmount.Name = "lblAmount";
             this.lblAmount.Size = new System.Drawing.Size(99, 28);
@@ -197,7 +202,7 @@
             // txtAmount
             // 
             this.txtAmount.Font = new System.Drawing.Font("맑은 고딕", 10F);
-            this.txtAmount.Location = new System.Drawing.Point(199, 118);
+            this.txtAmount.Location = new System.Drawing.Point(198, 104);
             this.txtAmount.Margin = new System.Windows.Forms.Padding(4);
             this.txtAmount.Name = "txtAmount";
             this.txtAmount.Size = new System.Drawing.Size(302, 34);
@@ -205,15 +210,47 @@
             // 
             // listView1
             // 
+            this.listView1.AllowColumnReorder = true;
+            this.listView1.Columns.AddRange(new System.Windows.Forms.ColumnHeader[] {
+            this.columnHeader1,
+            this.columnHeader2,
+            this.columnHeader3,
+            this.columnHeader4});
             this.listView1.Dock = System.Windows.Forms.DockStyle.Fill;
+            this.listView1.FullRowSelect = true;
+            this.listView1.GridLines = true;
+            this.listView1.HeaderStyle = System.Windows.Forms.ColumnHeaderStyle.Nonclickable;
             this.listView1.HideSelection = false;
             this.listView1.Location = new System.Drawing.Point(0, 320);
-            this.listView1.Margin = new System.Windows.Forms.Padding(4);
+            this.listView1.Margin = new System.Windows.Forms.Padding(0);
             this.listView1.Name = "listView1";
             this.listView1.Size = new System.Drawing.Size(1200, 580);
             this.listView1.TabIndex = 3;
             this.listView1.UseCompatibleStateImageBehavior = false;
+            this.listView1.View = System.Windows.Forms.View.Details;
             this.listView1.SelectedIndexChanged += new System.EventHandler(this.ListView1_SelectedIndexChanged);
+            // 
+            // columnHeader1
+            // 
+            this.columnHeader1.Text = "년월";
+            this.columnHeader1.Width = 80;
+            // 
+            // columnHeader2
+            // 
+            this.columnHeader2.Text = "카테고리";
+            this.columnHeader2.TextAlign = System.Windows.Forms.HorizontalAlignment.Center;
+            this.columnHeader2.Width = 100;
+            // 
+            // columnHeader3
+            // 
+            this.columnHeader3.Text = "예산금액";
+            this.columnHeader3.TextAlign = System.Windows.Forms.HorizontalAlignment.Right;
+            this.columnHeader3.Width = 100;
+            // 
+            // columnHeader4
+            // 
+            this.columnHeader4.Text = "메모";
+            this.columnHeader4.Width = 200;
             // 
             // FormBudget
             // 
@@ -244,5 +281,9 @@
         private System.Windows.Forms.TextBox txtMemo;
         private System.Windows.Forms.ComboBox cmbMainCategory;
         private System.Windows.Forms.TextBox txtAmount;
+        private System.Windows.Forms.ColumnHeader columnHeader1;
+        private System.Windows.Forms.ColumnHeader columnHeader2;
+        private System.Windows.Forms.ColumnHeader columnHeader3;
+        private System.Windows.Forms.ColumnHeader columnHeader4;
     }
 }

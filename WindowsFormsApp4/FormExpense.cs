@@ -8,11 +8,11 @@ namespace WindowsFormsApp4
     public partial class FormExpense : Form
     {
         private DataTable expenseTable;
-
-        // ▼ 본인 DB 정보로 수정 필수
         private string connectionString = "User Id=BANK_MANAGER; Password=1234; Data Source=localhost:1521/XE;";
-
         private bool isLoading = false;
+
+        // ★ 핵심: 현재 조회 모드가 '월별'인지 '일별'인지 기억하는 변수
+        private bool isMonthViewMode = true;
 
         public FormExpense()
         {
@@ -21,116 +21,20 @@ namespace WindowsFormsApp4
 
             InitializeExpenseTable();
 
-            // 1. 콤보박스 로딩 (지출 카테고리만!)
             LoadMainCategories();
             LoadPaymentMethods();
 
-            // 2. 조회 (지출 내역만!)
+            // 1. 초기 로드: 오늘 날짜 기준 '이번 달 전체' 조회
             dtpDate.Value = DateTime.Now;
+            isMonthViewMode = true; // 월별 모드 강제 설정
             LoadExpenseFromDB();
 
             isLoading = false;
         }
 
         // =========================================================
-        // 1. 데이터 로딩 (수정됨: 지출 카테고리만 가져오기)
+        // ★ 조회 로직 수정 (월별/일별 분기 처리)
         // =========================================================
-
-        private void LoadMainCategories()
-        {
-            using (OracleConnection conn = new OracleConnection(connectionString))
-            {
-                try
-                {
-                    conn.Open();
-                    // ★ 수정: WHERE TYPE = 'EXPENSE' 추가 (지출만 선택 가능하게)
-                    string sql = "SELECT CATEGORY_ID, NAME FROM CATEGORIES WHERE TYPE = 'EXPENSE' ORDER BY CATEGORY_ID";
-                    OracleDataAdapter da = new OracleDataAdapter(sql, conn);
-                    DataTable dt = new DataTable();
-                    da.Fill(dt);
-
-                    cmbMainCategory.DataSource = dt;
-                    cmbMainCategory.DisplayMember = "NAME";
-                    cmbMainCategory.ValueMember = "CATEGORY_ID";
-
-                    cmbMainCategory.SelectedIndex = -1;
-                }
-                catch (Exception ex) { MessageBox.Show("대분류 로딩 실패: " + ex.Message); }
-            }
-        }
-
-        private void LoadSubCategories(int mainId)
-        {
-            using (OracleConnection conn = new OracleConnection(connectionString))
-            {
-                try
-                {
-                    conn.Open();
-                    string sql = "SELECT SUB_ID, NAME FROM SUB_CATEGORIES WHERE CATEGORY_ID = :MainID ORDER BY NAME";
-                    OracleCommand cmd = new OracleCommand(sql, conn);
-                    cmd.Parameters.Add(":MainID", mainId);
-
-                    OracleDataAdapter da = new OracleDataAdapter(cmd);
-                    DataTable dt = new DataTable();
-                    da.Fill(dt);
-
-                    cmbSubCategory.DataSource = dt;
-                    cmbSubCategory.DisplayMember = "NAME";
-                    cmbSubCategory.ValueMember = "SUB_ID";
-
-                    cmbSubCategory.SelectedIndex = -1;
-                }
-                catch (Exception ex) { MessageBox.Show("소분류 로딩 실패: " + ex.Message); }
-            }
-        }
-
-        private void LoadPaymentMethods()
-        {
-            using (OracleConnection conn = new OracleConnection(connectionString))
-            {
-                try
-                {
-                    conn.Open();
-                    string sql = "SELECT PM_ID, NAME FROM PAYMENT_METHODS ORDER BY NAME";
-                    OracleDataAdapter da = new OracleDataAdapter(sql, conn);
-                    DataTable dt = new DataTable();
-                    da.Fill(dt);
-
-                    cmbPayType.DataSource = dt;
-                    cmbPayType.DisplayMember = "NAME";
-                    cmbPayType.ValueMember = "PM_ID";
-
-                    cmbPayType.SelectedIndex = -1;
-                }
-                catch (Exception ex) { MessageBox.Show("결제수단 로딩 실패: " + ex.Message); }
-            }
-        }
-
-        // =========================================================
-        // 2. 콤보박스 이벤트
-        // =========================================================
-
-        private void cmbMainCategory_SelectedIndexChanged(object sender, EventArgs e)
-        {
-            if (isLoading) return;
-            if (cmbMainCategory.SelectedIndex == -1 || cmbMainCategory.SelectedValue == null) return;
-
-            try
-            {
-                int selectedId = Convert.ToInt32(cmbMainCategory.SelectedValue);
-                LoadSubCategories(selectedId);
-            }
-            catch { }
-        }
-
-        private void cmbSubCategory_SelectedIndexChanged(object sender, EventArgs e) { }
-        private void cmbPayType_SelectedIndexChanged(object sender, EventArgs e) { }
-
-
-        // =========================================================
-        // 3. 조회 (수정됨: 지출 내역만 가져오기)
-        // =========================================================
-
         private void LoadExpenseFromDB()
         {
             expenseTable.Rows.Clear();
@@ -139,36 +43,54 @@ namespace WindowsFormsApp4
                 try
                 {
                     conn.Open();
-                    // ★ 수정: WHERE C.TYPE = 'EXPENSE' 추가
-                    string sql = @"
+
+                    string dateCondition = "";
+                    string dateParamValue = "";
+
+                    // ★ 모드에 따라 SQL 조건문과 파라미터 변경
+                    if (isMonthViewMode)
+                    {
+                        // [월별 보기] YYYY-MM 문자열로 변환하여 비교
+                        dateCondition = "AND TO_CHAR(T.TX_DATE, 'YYYY-MM') = :DateParam";
+                        dateParamValue = dtpDate.Value.ToString("yyyy-MM");
+                    }
+                    else
+                    {
+                        // YYYY-MM-DD 날짜로 비교
+                        dateCondition = "AND TRUNC(T.TX_DATE) = TO_DATE(:DateParam, 'YYYY-MM-DD')";
+                        dateParamValue = dtpDate.Value.ToString("yyyy-MM-dd");
+                    }
+
+                    string sql = $@"
                         SELECT 
                             T.TX_ID         AS 거래ID,
                             TO_CHAR(T.TX_DATE, 'YYYY-MM-DD') AS 날짜,
                             PM.NAME         AS 결제수단,
                             PM.PM_ID        AS 결제수단ID,
-                            C.NAME          AS 대분류,
-                            C.CATEGORY_ID   AS 대분류ID,
-                            S.NAME          AS 소분류,
-                            S.SUB_ID        AS 소분류ID,
+                            C.NAME          AS 항목,
+                            C.CATEGORY_ID   AS 항목ID,
+                            S.NAME          AS 세부내역,
+                            S.SUB_ID        AS 세부내역ID,
                             T.AMOUNT        AS 금액,
                             T.MEMO          AS 메모
                         FROM TRANSACTIONS T
                         JOIN PAYMENT_METHODS PM ON T.PM_ID = PM.PM_ID
                         JOIN SUB_CATEGORIES S   ON T.SUB_ID = S.SUB_ID
                         JOIN CATEGORIES C       ON S.CATEGORY_ID = C.CATEGORY_ID
-                        WHERE C.TYPE = 'EXPENSE'  -- ★ 여기서 지출만 필터링!
-                          AND TRUNC(T.TX_DATE) = TO_DATE(:검색날짜, 'YYYY-MM-DD')
-                        ORDER BY T.TX_ID DESC";
+                        WHERE C.TYPE = 'EXPENSE'
+                          {dateCondition}  -- ★ 위에서 만든 조건문 삽입
+                        ORDER BY T.TX_DATE DESC, T.TX_ID DESC";
 
                     OracleCommand cmd = new OracleCommand(sql, conn);
-                    cmd.Parameters.Add(":검색날짜", dtpDate.Value.ToString("yyyy-MM-dd"));
+                    cmd.Parameters.Add(":DateParam", dateParamValue);
+
                     OracleDataReader rd = cmd.ExecuteReader();
 
                     while (rd.Read())
                     {
                         expenseTable.Rows.Add(
                             rd["거래ID"], rd["날짜"], rd["결제수단"], rd["결제수단ID"],
-                            rd["대분류"], rd["대분류ID"], rd["소분류"], rd["소분류ID"],
+                            rd["항목"], rd["항목ID"], rd["세부내역"], rd["세부내역ID"],
                             rd["금액"], rd["메모"]
                         );
                     }
@@ -178,8 +100,24 @@ namespace WindowsFormsApp4
         }
 
         // =========================================================
-        // 4. 추가/수정/삭제 (기존 로직 유지)
+        // ★ 이벤트 1: 날짜를 바꾸면 -> '일별 보기'로 전환
         // =========================================================
+        private void dtpDate_ValueChanged(object sender, EventArgs e)
+        {
+            if (isLoading) return; // 초기 로딩 중에는 실행 안 함
+
+            isMonthViewMode = false; // 일별 모드로 변경
+            LoadExpenseFromDB();
+        }
+
+        // =========================================================
+        // ★ 이벤트 2: MonthBtn 누르면 -> '월별 보기'로 전환
+        // =========================================================
+        private void Monthbtn_Click(object sender, EventArgs e)
+        {
+            isMonthViewMode = true; // 월별 모드로 변경
+            LoadExpenseFromDB();    // 현재 dtpDate에 선택된 '월'의 전체 내역 조회
+        }
 
         private void btnAdd_Click(object sender, EventArgs e)
         {
@@ -280,6 +218,7 @@ namespace WindowsFormsApp4
             }
         }
 
+        // 검색 버튼은 '날짜 선택'과 역할이 비슷하지만, 수동 갱신용으로 둡니다.
         private void SearchBtn_Click(object sender, EventArgs e)
         {
             LoadExpenseFromDB();
@@ -298,11 +237,11 @@ namespace WindowsFormsApp4
 
                 cmbPayType.SelectedValue = Convert.ToInt32(dgvExpense.Rows[e.RowIndex].Cells["결제수단ID"].Value);
 
-                int mainId = Convert.ToInt32(dgvExpense.Rows[e.RowIndex].Cells["대분류ID"].Value);
+                int mainId = Convert.ToInt32(dgvExpense.Rows[e.RowIndex].Cells["항목ID"].Value);
                 cmbMainCategory.SelectedValue = mainId;
 
                 LoadSubCategories(mainId);
-                cmbSubCategory.SelectedValue = Convert.ToInt32(dgvExpense.Rows[e.RowIndex].Cells["소분류ID"].Value);
+                cmbSubCategory.SelectedValue = Convert.ToInt32(dgvExpense.Rows[e.RowIndex].Cells["세부내역ID"].Value);
             }
             catch { }
 
@@ -317,9 +256,9 @@ namespace WindowsFormsApp4
             expenseTable.Columns.Add("결제수단", typeof(string));
             expenseTable.Columns.Add("결제수단ID", typeof(int));
             expenseTable.Columns.Add("항목", typeof(string));
-            expenseTable.Columns.Add("대분류ID", typeof(int));
+            expenseTable.Columns.Add("항목ID", typeof(int));
             expenseTable.Columns.Add("세부내역", typeof(string));
-            expenseTable.Columns.Add("소분류ID", typeof(int));
+            expenseTable.Columns.Add("세부내역ID", typeof(int));
             expenseTable.Columns.Add("금액", typeof(int));
             expenseTable.Columns.Add("메모", typeof(string));
 
@@ -327,26 +266,105 @@ namespace WindowsFormsApp4
 
             dgvExpense.Columns["거래ID"].Visible = false;
             dgvExpense.Columns["결제수단ID"].Visible = false;
-            dgvExpense.Columns["대분류ID"].Visible = false;
-            dgvExpense.Columns["소분류ID"].Visible = false;
+            dgvExpense.Columns["항목ID"].Visible = false;
+            dgvExpense.Columns["세부내역ID"].Visible = false;
 
             dgvExpense.Columns["금액"].DefaultCellStyle.Format = "N0";
             dgvExpense.AutoSizeColumnsMode = DataGridViewAutoSizeColumnsMode.Fill;
 
             dgvExpense.CellClick += dgvExpense_CellClick;
-            dtpDate.ValueChanged += (s, e) => LoadExpenseFromDB();
+
 
             cmbMainCategory.SelectedIndexChanged += cmbMainCategory_SelectedIndexChanged;
             cmbSubCategory.SelectedIndexChanged += cmbSubCategory_SelectedIndexChanged;
             cmbPayType.SelectedIndexChanged += cmbPayType_SelectedIndexChanged;
         }
 
+        private void LoadMainCategories()
+        {
+            using (OracleConnection conn = new OracleConnection(connectionString))
+            {
+                try
+                {
+                    conn.Open();
+                    string sql = "SELECT CATEGORY_ID, NAME FROM CATEGORIES WHERE TYPE = 'EXPENSE' ORDER BY CATEGORY_ID";
+                    OracleDataAdapter da = new OracleDataAdapter(sql, conn);
+                    DataTable dt = new DataTable();
+                    da.Fill(dt);
+
+                    cmbMainCategory.DataSource = dt;
+                    cmbMainCategory.DisplayMember = "NAME";
+                    cmbMainCategory.ValueMember = "CATEGORY_ID";
+                    cmbMainCategory.SelectedIndex = -1;
+                }
+                catch (Exception ex) { MessageBox.Show("대분류 로딩 실패: " + ex.Message); }
+            }
+        }
+
+        private void LoadSubCategories(int mainId)
+        {
+            using (OracleConnection conn = new OracleConnection(connectionString))
+            {
+                try
+                {
+                    conn.Open();
+                    string sql = "SELECT SUB_ID, NAME FROM SUB_CATEGORIES WHERE CATEGORY_ID = :MainID ORDER BY NAME";
+                    OracleCommand cmd = new OracleCommand(sql, conn);
+                    cmd.Parameters.Add(":MainID", mainId);
+                    OracleDataAdapter da = new OracleDataAdapter(cmd);
+                    DataTable dt = new DataTable();
+                    da.Fill(dt);
+
+                    cmbSubCategory.DataSource = dt;
+                    cmbSubCategory.DisplayMember = "NAME";
+                    cmbSubCategory.ValueMember = "SUB_ID";
+                    cmbSubCategory.SelectedIndex = -1;
+                }
+                catch (Exception ex) { MessageBox.Show("소분류 로딩 실패: " + ex.Message); }
+            }
+        }
+
+        private void LoadPaymentMethods()
+        {
+            using (OracleConnection conn = new OracleConnection(connectionString))
+            {
+                try
+                {
+                    conn.Open();
+                    string sql = "SELECT PM_ID, NAME FROM PAYMENT_METHODS ORDER BY NAME";
+                    OracleDataAdapter da = new OracleDataAdapter(sql, conn);
+                    DataTable dt = new DataTable();
+                    da.Fill(dt);
+
+                    cmbPayType.DataSource = dt;
+                    cmbPayType.DisplayMember = "NAME";
+                    cmbPayType.ValueMember = "PM_ID";
+                    cmbPayType.SelectedIndex = -1;
+                }
+                catch (Exception ex) { MessageBox.Show("결제수단 로딩 실패: " + ex.Message); }
+            }
+        }
+
+        // 콤보박스 이벤트 핸들러
+        private void cmbMainCategory_SelectedIndexChanged(object sender, EventArgs e)
+        {
+            if (isLoading) return;
+            if (cmbMainCategory.SelectedIndex == -1 || cmbMainCategory.SelectedValue == null) return;
+            try
+            {
+                int selectedId = Convert.ToInt32(cmbMainCategory.SelectedValue);
+                LoadSubCategories(selectedId);
+            }
+            catch { }
+        }
+        private void cmbSubCategory_SelectedIndexChanged(object sender, EventArgs e) { }
+        private void cmbPayType_SelectedIndexChanged(object sender, EventArgs e) { }
+
         private void ClearInput()
         {
             cmbMainCategory.SelectedIndex = -1;
             cmbSubCategory.DataSource = null;
             cmbPayType.SelectedIndex = -1;
-
             txtAmount.Clear();
             txtMemo.Clear();
         }

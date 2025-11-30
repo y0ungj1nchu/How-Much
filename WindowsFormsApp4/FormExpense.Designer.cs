@@ -37,8 +37,9 @@
         #region Windows Form Designer generated code
         private void InitializeComponent()
         {
-            System.Windows.Forms.DataGridViewCellStyle dataGridViewCellStyle1 = new System.Windows.Forms.DataGridViewCellStyle();
+            System.Windows.Forms.DataGridViewCellStyle dataGridViewCellStyle5 = new System.Windows.Forms.DataGridViewCellStyle();
             this.panelTop = new System.Windows.Forms.Panel();
+            this.Monthbtn = new System.Windows.Forms.Button();
             this.lblTitle = new System.Windows.Forms.Label();
             this.dtpDate = new System.Windows.Forms.DateTimePicker();
             this.panelInput = new System.Windows.Forms.Panel();
@@ -62,7 +63,8 @@
             // 
             // panelTop
             // 
-            this.panelTop.BackColor = System.Drawing.Color.IndianRed;
+            this.panelTop.BackColor = System.Drawing.Color.LightSeaGreen;
+            this.panelTop.Controls.Add(this.Monthbtn);
             this.panelTop.Controls.Add(this.lblTitle);
             this.panelTop.Controls.Add(this.dtpDate);
             this.panelTop.Dock = System.Windows.Forms.DockStyle.Top;
@@ -71,6 +73,21 @@
             this.panelTop.Name = "panelTop";
             this.panelTop.Size = new System.Drawing.Size(1200, 82);
             this.panelTop.TabIndex = 2;
+            // 
+            // Monthbtn
+            // 
+            this.Monthbtn.BackColor = System.Drawing.Color.Silver;
+            this.Monthbtn.FlatStyle = System.Windows.Forms.FlatStyle.Flat;
+            this.Monthbtn.Font = new System.Drawing.Font("맑은 고딕", 10F, System.Drawing.FontStyle.Bold);
+            this.Monthbtn.ForeColor = System.Drawing.Color.Black;
+            this.Monthbtn.Location = new System.Drawing.Point(1052, 15);
+            this.Monthbtn.Margin = new System.Windows.Forms.Padding(4);
+            this.Monthbtn.Name = "Monthbtn";
+            this.Monthbtn.Size = new System.Drawing.Size(135, 52);
+            this.Monthbtn.TabIndex = 14;
+            this.Monthbtn.Text = "전체보기";
+            this.Monthbtn.UseVisualStyleBackColor = false;
+            this.Monthbtn.Click += new System.EventHandler(this.Monthbtn_Click);
             // 
             // lblTitle
             // 
@@ -82,18 +99,19 @@
             this.lblTitle.Name = "lblTitle";
             this.lblTitle.Size = new System.Drawing.Size(290, 45);
             this.lblTitle.TabIndex = 0;
-            this.lblTitle.Text = "💸 지출 내역 관리";
+            this.lblTitle.Text = "💸 거래 내역 관리";
             // 
             // dtpDate
             // 
-            this.dtpDate.CustomFormat = "yyyy/MM/dd";
+            this.dtpDate.CustomFormat = "yyyy-MM-dd";
             this.dtpDate.Font = new System.Drawing.Font("맑은 고딕", 10F);
             this.dtpDate.Format = System.Windows.Forms.DateTimePickerFormat.Custom;
-            this.dtpDate.Location = new System.Drawing.Point(1000, 22);
+            this.dtpDate.Location = new System.Drawing.Point(860, 22);
             this.dtpDate.Margin = new System.Windows.Forms.Padding(4);
             this.dtpDate.Name = "dtpDate";
             this.dtpDate.Size = new System.Drawing.Size(172, 34);
             this.dtpDate.TabIndex = 4;
+            this.dtpDate.ValueChanged += new System.EventHandler(this.dtpDate_ValueChanged);
             // 
             // panelInput
             // 
@@ -154,7 +172,7 @@
             this.lblDate.Name = "lblDate";
             this.lblDate.Size = new System.Drawing.Size(92, 28);
             this.lblDate.TabIndex = 0;
-            this.lblDate.Text = "결제수단";
+            this.lblDate.Text = "거래수단";
             // 
             // lblCategory
             // 
@@ -256,14 +274,14 @@
             // 
             this.dgvExpense.AutoSizeColumnsMode = System.Windows.Forms.DataGridViewAutoSizeColumnsMode.Fill;
             this.dgvExpense.BackgroundColor = System.Drawing.Color.White;
-            dataGridViewCellStyle1.Alignment = System.Windows.Forms.DataGridViewContentAlignment.MiddleLeft;
-            dataGridViewCellStyle1.BackColor = System.Drawing.Color.IndianRed;
-            dataGridViewCellStyle1.Font = new System.Drawing.Font("굴림", 9F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(129)));
-            dataGridViewCellStyle1.ForeColor = System.Drawing.Color.White;
-            dataGridViewCellStyle1.SelectionBackColor = System.Drawing.SystemColors.Highlight;
-            dataGridViewCellStyle1.SelectionForeColor = System.Drawing.SystemColors.HighlightText;
-            dataGridViewCellStyle1.WrapMode = System.Windows.Forms.DataGridViewTriState.True;
-            this.dgvExpense.ColumnHeadersDefaultCellStyle = dataGridViewCellStyle1;
+            dataGridViewCellStyle5.Alignment = System.Windows.Forms.DataGridViewContentAlignment.MiddleLeft;
+            dataGridViewCellStyle5.BackColor = System.Drawing.Color.IndianRed;
+            dataGridViewCellStyle5.Font = new System.Drawing.Font("굴림", 9F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(129)));
+            dataGridViewCellStyle5.ForeColor = System.Drawing.Color.White;
+            dataGridViewCellStyle5.SelectionBackColor = System.Drawing.SystemColors.Highlight;
+            dataGridViewCellStyle5.SelectionForeColor = System.Drawing.SystemColors.HighlightText;
+            dataGridViewCellStyle5.WrapMode = System.Windows.Forms.DataGridViewTriState.True;
+            this.dgvExpense.ColumnHeadersDefaultCellStyle = dataGridViewCellStyle5;
             this.dgvExpense.ColumnHeadersHeight = 36;
             this.dgvExpense.Dock = System.Windows.Forms.DockStyle.Fill;
             this.dgvExpense.EnableHeadersVisualStyles = false;
@@ -300,5 +318,6 @@
         private System.Windows.Forms.ComboBox cmbPayType;
         private System.Windows.Forms.ComboBox cmbMainCategory;
         private System.Windows.Forms.ComboBox cmbSubCategory;
+        private System.Windows.Forms.Button Monthbtn;
     }
 }

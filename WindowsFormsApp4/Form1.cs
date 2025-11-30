@@ -41,7 +41,7 @@ namespace WindowsFormsApp4
 
         private void btnStats_Click(object sender, EventArgs e)
         {
-            LoadForm(new FormStats(incomeTable, expenseTable, budgetTable));
+            LoadForm(new FormStats());
         }
     }
 }

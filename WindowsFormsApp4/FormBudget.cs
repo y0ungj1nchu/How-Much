@@ -14,9 +14,6 @@ namespace WindowsFormsApp4
         {
             InitializeComponent();
 
-            // 1. 리스트뷰 컬럼 세팅
-            InitializeListView();
-
             // 2. 콤보박스(카테고리) 채우기
             LoadCategoryData();
 
@@ -25,22 +22,6 @@ namespace WindowsFormsApp4
             LoadBudgetData();
         }
 
-        // =========================================================
-        // 1. 초기 설정 (리스트뷰 컬럼 & 카테고리 로딩)
-        // =========================================================
-        private void InitializeListView()
-        {
-            // 리스트뷰 설정 (디자인 창에서 이미 했다면 생략 가능하지만 안전하게)
-            listView1.View = View.Details;
-            listView1.GridLines = true;
-            listView1.FullRowSelect = true;
-
-            // 컬럼 추가 (폭은 적절히 조절)
-            listView1.Columns.Add("년월", 100, HorizontalAlignment.Center);
-            listView1.Columns.Add("카테고리", 150, HorizontalAlignment.Center);
-            listView1.Columns.Add("예산 금액", 150, HorizontalAlignment.Right);
-            listView1.Columns.Add("메모", 300, HorizontalAlignment.Left);
-        }
 
         private void LoadCategoryData()
         {
@@ -89,7 +70,7 @@ namespace WindowsFormsApp4
                             C.NAME AS CATEGORY_NAME, 
                             C.CATEGORY_ID,
                             B.AMOUNT,
-                            '메모 기능 없음' AS MEMO -- 예산 테이블에 메모 컬럼이 없어서 임시 처리
+                            ' ' AS MEMO
                         FROM BUDGETS B
                         JOIN CATEGORIES C ON B.CATEGORY_ID = C.CATEGORY_ID
                         WHERE B.YYYYMM = :TargetMonth
@@ -102,7 +83,6 @@ namespace WindowsFormsApp4
 
                     while (rd.Read())
                     {
-                        // ★ 리스트뷰 아이템 생성
                         // 1번째 컬럼: 년월 (보여주기용 포맷팅 yyyy-MM)
                         string yyyymm = rd["YYYYMM"].ToString();
                         string displayMonth = yyyymm.Substring(0, 4) + "-" + yyyymm.Substring(4, 2);
@@ -193,7 +173,7 @@ namespace WindowsFormsApp4
                 return;
             }
 
-            // ★ Tag에 숨겨둔 ID 꺼내오기
+            // Tag에 숨겨둔 ID 꺼내오기
             int budgetId = Convert.ToInt32(listView1.SelectedItems[0].Tag);
             string targetMonth = cmbMonth.Value.ToString("yyyyMM");
 
