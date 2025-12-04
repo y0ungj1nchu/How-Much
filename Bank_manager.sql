@@ -3,21 +3,34 @@
 ------------------------------------------------------------
 
 -- SEQUENCES
-DROP SEQUENCE SEQ_TM;
-DROP SEQUENCE SEQ_CATS;
-DROP SEQUENCE SEQ_SUB_CATS;
-DROP SEQUENCE SEQ_FIXED_EXP;
-DROP SEQUENCE SEQ_TX;
-DROP SEQUENCE SEQ_BUDGETS;
+BEGIN EXECUTE IMMEDIATE 'DROP SEQUENCE SEQ_TM'; EXCEPTION WHEN OTHERS THEN NULL; END;
+/
+BEGIN EXECUTE IMMEDIATE 'DROP SEQUENCE SEQ_CATS'; EXCEPTION WHEN OTHERS THEN NULL; END;
+/
+BEGIN EXECUTE IMMEDIATE 'DROP SEQUENCE SEQ_SUB_CATS'; EXCEPTION WHEN OTHERS THEN NULL; END;
+/
+BEGIN EXECUTE IMMEDIATE 'DROP SEQUENCE SEQ_FIXED_EXP'; EXCEPTION WHEN OTHERS THEN NULL; END;
+/
+BEGIN EXECUTE IMMEDIATE 'DROP SEQUENCE SEQ_TX'; EXCEPTION WHEN OTHERS THEN NULL; END;
+/
+BEGIN EXECUTE IMMEDIATE 'DROP SEQUENCE SEQ_BUDGETS'; EXCEPTION WHEN OTHERS THEN NULL; END;
+/
 
--- TABLES (FK 순서 고려하여 역순 DROP)
-DROP TABLE INSTALLMENTS CASCADE CONSTRAINTS;
-DROP TABLE TRANSACTIONS CASCADE CONSTRAINTS;
-DROP TABLE FIXED_EXPENSES CASCADE CONSTRAINTS;
-DROP TABLE BUDGETS CASCADE CONSTRAINTS;
-DROP TABLE SUB_CATEGORIES CASCADE CONSTRAINTS;
-DROP TABLE CATEGORIES CASCADE CONSTRAINTS;
-DROP TABLE TRANSACTION_METHODS CASCADE CONSTRAINTS;
+-- TABLES
+BEGIN EXECUTE IMMEDIATE 'DROP TABLE INSTALLMENTS CASCADE CONSTRAINTS'; EXCEPTION WHEN OTHERS THEN NULL; END;
+/
+BEGIN EXECUTE IMMEDIATE 'DROP TABLE TRANSACTIONS CASCADE CONSTRAINTS'; EXCEPTION WHEN OTHERS THEN NULL; END;
+/
+BEGIN EXECUTE IMMEDIATE 'DROP TABLE FIXED_EXPENSES CASCADE CONSTRAINTS'; EXCEPTION WHEN OTHERS THEN NULL; END;
+/
+BEGIN EXECUTE IMMEDIATE 'DROP TABLE BUDGETS CASCADE CONSTRAINTS'; EXCEPTION WHEN OTHERS THEN NULL; END;
+/
+BEGIN EXECUTE IMMEDIATE 'DROP TABLE SUB_CATEGORIES CASCADE CONSTRAINTS'; EXCEPTION WHEN OTHERS THEN NULL; END;
+/
+BEGIN EXECUTE IMMEDIATE 'DROP TABLE CATEGORIES CASCADE CONSTRAINTS'; EXCEPTION WHEN OTHERS THEN NULL; END;
+/
+BEGIN EXECUTE IMMEDIATE 'DROP TABLE TRANSACTION_METHODS CASCADE CONSTRAINTS'; EXCEPTION WHEN OTHERS THEN NULL; END;
+/
 
 ------------------------------------------------------------
 -- 2) 시퀀스 생성
@@ -34,31 +47,22 @@ CREATE SEQUENCE SEQ_BUDGETS     START WITH 1 INCREMENT BY 1;
 -- 3) 테이블 생성
 ------------------------------------------------------------
 
-------------------------------------------------------------
--- 거래수단 (PAYMENT_METHODS → TRANSACTION_METHODS)
-------------------------------------------------------------
 CREATE TABLE TRANSACTION_METHODS (
     TM_ID        NUMBER         NOT NULL,
     NAME         VARCHAR2(50)   NOT NULL,
-    TYPE         VARCHAR2(10)   NOT NULL,  -- BANK / CARD / CASH
+    TYPE         VARCHAR2(10)   NOT NULL,
     BALANCE      NUMBER         DEFAULT 0,
     BILLING_DAY  NUMBER         DEFAULT NULL,
     CONSTRAINT PK_TM PRIMARY KEY (TM_ID)
 );
 
-------------------------------------------------------------
--- 카테고리 (대분류)
-------------------------------------------------------------
 CREATE TABLE CATEGORIES (
     CATEGORY_ID  NUMBER          NOT NULL,
     NAME         VARCHAR2(50)    NOT NULL,
-    TYPE         VARCHAR2(10)    NOT NULL, -- EXPENSE / INCOME
+    TYPE         VARCHAR2(10)    NOT NULL,
     CONSTRAINT PK_CATS PRIMARY KEY (CATEGORY_ID)
 );
 
-------------------------------------------------------------
--- 소분류 카테고리
-------------------------------------------------------------
 CREATE TABLE SUB_CATEGORIES (
     SUB_ID        NUMBER          NOT NULL,
     CATEGORY_ID   NUMBER          NOT NULL,
@@ -68,22 +72,16 @@ CREATE TABLE SUB_CATEGORIES (
         REFERENCES CATEGORIES(CATEGORY_ID)
 );
 
-------------------------------------------------------------
--- 예산 테이블 (카테고리별 예산)
-------------------------------------------------------------
 CREATE TABLE BUDGETS (
     BUDGET_ID    NUMBER         NOT NULL,
     CATEGORY_ID  NUMBER         NOT NULL,
-    YYYYMM       VARCHAR2(6)    NOT NULL, -- '202511'
+    YYYYMM       VARCHAR2(6)    NOT NULL,
     AMOUNT       NUMBER         DEFAULT 0,
     CONSTRAINT PK_BUDGETS PRIMARY KEY (BUDGET_ID),
     CONSTRAINT FK_BUDGET_CATS FOREIGN KEY (CATEGORY_ID)
         REFERENCES CATEGORIES(CATEGORY_ID)
 );
 
-------------------------------------------------------------
--- 고정 지출 테이블
-------------------------------------------------------------
 CREATE TABLE FIXED_EXPENSES (
     FIXED_EXP_ID NUMBER          NOT NULL,
     SUB_ID       NUMBER          NOT NULL,
@@ -101,9 +99,6 @@ CREATE TABLE FIXED_EXPENSES (
         REFERENCES TRANSACTION_METHODS(TM_ID)
 );
 
-------------------------------------------------------------
--- 거래내역 테이블
-------------------------------------------------------------
 CREATE TABLE TRANSACTIONS (
     TX_ID         NUMBER         NOT NULL,
     TM_ID         NUMBER         NOT NULL,
@@ -122,9 +117,6 @@ CREATE TABLE TRANSACTIONS (
         REFERENCES FIXED_EXPENSES(FIXED_EXP_ID)
 );
 
-------------------------------------------------------------
--- 할부 정보 테이블 (선택)
-------------------------------------------------------------
 CREATE TABLE INSTALLMENTS (
     TX_ID          NUMBER        NOT NULL,
     TOTAL_MONTHS   NUMBER        NOT NULL,
@@ -138,47 +130,29 @@ CREATE TABLE INSTALLMENTS (
 -- 4) 초기 데이터 INSERT
 ------------------------------------------------------------
 
-------------------------------------------------------------
--- 거래수단
-------------------------------------------------------------
 INSERT INTO TRANSACTION_METHODS VALUES (1, '신한은행', 'BANK', 5000000, NULL);
 INSERT INTO TRANSACTION_METHODS VALUES (2, '현대카드', 'CARD', -450000, 25);
 INSERT INTO TRANSACTION_METHODS VALUES (3, '현금', 'CASH', 30000, NULL);
 
-------------------------------------------------------------
--- 카테고리
-------------------------------------------------------------
 INSERT INTO CATEGORIES VALUES (1, '식비', 'EXPENSE');
 INSERT INTO CATEGORIES VALUES (2, '교통', 'EXPENSE');
 INSERT INTO CATEGORIES VALUES (3, '쇼핑', 'EXPENSE');
 INSERT INTO CATEGORIES VALUES (4, '급여', 'INCOME');
 
-------------------------------------------------------------
--- 소분류
-------------------------------------------------------------
 INSERT INTO SUB_CATEGORIES VALUES (1, 1, '외식');
 INSERT INTO SUB_CATEGORIES VALUES (2, 1, '카페/베이커리');
 INSERT INTO SUB_CATEGORIES VALUES (3, 1, '배달음식');
-
 INSERT INTO SUB_CATEGORIES VALUES (4, 2, '버스');
 INSERT INTO SUB_CATEGORIES VALUES (5, 2, '지하철');
-
 INSERT INTO SUB_CATEGORIES VALUES (6, 3, '의류');
 INSERT INTO SUB_CATEGORIES VALUES (7, 3, '잡화');
-
 INSERT INTO SUB_CATEGORIES VALUES (8, 4, '정기급여');
 INSERT INTO SUB_CATEGORIES VALUES (9, 4, '상여금');
 
-------------------------------------------------------------
--- 예산 데이터
-------------------------------------------------------------
 INSERT INTO BUDGETS VALUES (SEQ_BUDGETS.NEXTVAL, 1, '202511', 500000);
 INSERT INTO BUDGETS VALUES (SEQ_BUDGETS.NEXTVAL, 2, '202511', 150000);
 INSERT INTO BUDGETS VALUES (SEQ_BUDGETS.NEXTVAL, 3, '202511', 1000000);
 
-------------------------------------------------------------
--- 고정 지출 데이터
-------------------------------------------------------------
 INSERT INTO FIXED_EXPENSES VALUES (
     SEQ_FIXED_EXP.NEXTVAL, 
     7, 2, 
@@ -191,52 +165,116 @@ INSERT INTO FIXED_EXPENSES VALUES (
 );
 
 ------------------------------------------------------------
--- 거래내역
+-- ⚠ 거래내역 INSERT 수정됨 (컬럼명 명시)
 ------------------------------------------------------------
-INSERT INTO TRANSACTIONS VALUES (
+
+INSERT INTO TRANSACTIONS (
+    TX_ID, TM_ID, SUB_ID, FIXED_EXP_ID, AMOUNT, TX_DATE, MEMO
+) VALUES (
     SEQ_TX.NEXTVAL, 1, 8, NULL,
     3000000,
-    TO_DATE('2025-11-10 09:00', 'YYYY-MM-DD HH24:MI'),
+    TO_DATE('2025-11-10 09:00','YYYY-MM-DD HH24:MI'),
     '11월 급여'
 );
 
-INSERT INTO TRANSACTIONS VALUES (
+INSERT INTO TRANSACTIONS (
+    TX_ID, TM_ID, SUB_ID, FIXED_EXP_ID, AMOUNT, TX_DATE, MEMO
+) VALUES (
     SEQ_TX.NEXTVAL, 2, 1, NULL,
     9000,
-    TO_DATE('2025-11-11 12:30', 'YYYY-MM-DD HH24:MI'),
+    TO_DATE('2025-11-11 12:30','YYYY-MM-DD HH24:MI'),
     '점심'
 );
 
-INSERT INTO TRANSACTIONS VALUES (
+INSERT INTO TRANSACTIONS (
+    TX_ID, TM_ID, SUB_ID, FIXED_EXP_ID, AMOUNT, TX_DATE, MEMO
+) VALUES (
     SEQ_TX.NEXTVAL, 2, 4, NULL,
     15000,
-    TO_DATE('2025-11-12 23:40', 'YYYY-MM-DD HH24:MI'),
+    TO_DATE('2025-11-12 23:40','YYYY-MM-DD HH24:MI'),
     '버스 충전'
 );
 
-INSERT INTO TRANSACTIONS VALUES (
+INSERT INTO TRANSACTIONS (
+    TX_ID, TM_ID, SUB_ID, FIXED_EXP_ID, AMOUNT, TX_DATE, MEMO
+) VALUES (
     SEQ_TX.NEXTVAL, 3, 3, NULL,
     4500,
-    TO_DATE('2025-11-13 13:00', 'YYYY-MM-DD HH24:MI'),
+    TO_DATE('2025-11-13 13:00','YYYY-MM-DD HH24:MI'),
     '배달 라면'
 );
 
-INSERT INTO TRANSACTIONS VALUES (
+INSERT INTO TRANSACTIONS (
+    TX_ID, TM_ID, SUB_ID, FIXED_EXP_ID, AMOUNT, TX_DATE, MEMO
+) VALUES (
     SEQ_TX.NEXTVAL, 2, 6, NULL,
     1200000,
-    TO_DATE('2025-11-15 15:00', 'YYYY-MM-DD HH24:MI'),
+    TO_DATE('2025-11-15 15:00','YYYY-MM-DD HH24:MI'),
     '의류 구매'
 );
 
--- 의류 구매 건 → 할부 정보
+-- 할부 정보
 INSERT INTO INSTALLMENTS VALUES (SEQ_TX.CURRVAL, 3, 1);
 
--- 고정 지출 자동 반영 예시
-INSERT INTO TRANSACTIONS VALUES (
+-- 넷플릭스 자동결제
+INSERT INTO TRANSACTIONS (
+    TX_ID, TM_ID, SUB_ID, FIXED_EXP_ID, AMOUNT, TX_DATE, MEMO
+) VALUES (
     SEQ_TX.NEXTVAL, 2, 7, 1,
     17000,
-    TO_DATE('2025-11-01 10:00', 'YYYY-MM-DD HH24:MI'),
+    TO_DATE('2025-11-01 10:00','YYYY-MM-DD HH24:MI'),
     '넷플릭스 자동결제'
 );
+
+-- 12/01 점심 식비 (외식 - SUB_ID = 1)
+INSERT INTO TRANSACTIONS (
+    TX_ID, TM_ID, SUB_ID, FIXED_EXP_ID, AMOUNT, TX_DATE, MEMO
+) VALUES (
+    SEQ_TX.NEXTVAL, 2, 1, NULL,
+    8500,
+    TO_DATE('2025-12-01 12:20','YYYY-MM-DD HH24:MI'),
+    '점심 외식'
+);
+
+-- 12/02 커피 (카페/베이커리 - SUB_ID = 2)
+INSERT INTO TRANSACTIONS (
+    TX_ID, TM_ID, SUB_ID, FIXED_EXP_ID, AMOUNT, TX_DATE, MEMO
+) VALUES (
+    SEQ_TX.NEXTVAL, 3, 2, NULL,
+    4800,
+    TO_DATE('2025-12-02 09:10','YYYY-MM-DD HH24:MI'),
+    '출근길 아메리카노'
+);
+
+-- 12/03 버스 (SUB_ID = 4)
+INSERT INTO TRANSACTIONS (
+    TX_ID, TM_ID, SUB_ID, FIXED_EXP_ID, AMOUNT, TX_DATE, MEMO
+) VALUES (
+    SEQ_TX.NEXTVAL, 3, 4, NULL,
+    1250,
+    TO_DATE('2025-12-03 08:45','YYYY-MM-DD HH24:MI'),
+    '출근 버스'
+);
+
+-- 12/04 배달 음식 (SUB_ID = 3)
+INSERT INTO TRANSACTIONS (
+    TX_ID, TM_ID, SUB_ID, FIXED_EXP_ID, AMOUNT, TX_DATE, MEMO
+) VALUES (
+    SEQ_TX.NEXTVAL, 2, 3, NULL,
+    18500,
+    TO_DATE('2025-12-04 18:40','YYYY-MM-DD HH24:MI'),
+    '저녁 배달'
+);
+
+-- 12/05 12월 급여 (정기급여 SUB_ID = 8)
+INSERT INTO TRANSACTIONS (
+    TX_ID, TM_ID, SUB_ID, FIXED_EXP_ID, AMOUNT, TX_DATE, MEMO
+) VALUES (
+    SEQ_TX.NEXTVAL, 1, 8, NULL,
+    3000000,
+    TO_DATE('2025-12-05 08:00','YYYY-MM-DD HH24:MI'),
+    '12월 급여'
+);
+
 
 COMMIT;
