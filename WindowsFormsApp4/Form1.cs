@@ -12,7 +12,6 @@ namespace WindowsFormsApp4
             InitializeComponent();
         }
         private DataTable incomeTable;
-        private DataTable expenseTable;
         private DataTable budgetTable;
 
         private void LoadForm(Form frm)
@@ -24,19 +23,14 @@ namespace WindowsFormsApp4
             frm.Show();
         }
 
-        private void btnIncome_Click(object sender, EventArgs e)
+        private void btntransaction_Click(object sender, EventArgs e)
         {
-            LoadForm(new FormIncome());
+            LoadForm(new Formtransaction());
         }
 
         private void btnBudget_Click(object sender, EventArgs e)
         {
             LoadForm(new FormBudget());
-        }
-
-        private void btnExpense_Click(object sender, EventArgs e)
-        {
-            LoadForm(new FormExpense());
         }
 
         private void btnStats_Click(object sender, EventArgs e)

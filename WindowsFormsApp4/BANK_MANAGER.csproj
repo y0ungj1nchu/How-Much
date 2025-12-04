@@ -98,17 +98,11 @@
     <Compile Include="FormBudget.Designer.cs">
       <DependentUpon>FormBudget.cs</DependentUpon>
     </Compile>
-    <Compile Include="FormExpense.cs">
+    <Compile Include="Formtransaction.cs">
       <SubType>Form</SubType>
     </Compile>
-    <Compile Include="FormExpense.Designer.cs">
-      <DependentUpon>FormExpense.cs</DependentUpon>
-    </Compile>
-    <Compile Include="FormIncome.cs">
-      <SubType>Form</SubType>
-    </Compile>
-    <Compile Include="FormIncome.Designer.cs">
-      <DependentUpon>FormIncome.cs</DependentUpon>
+    <Compile Include="Formtransaction.Designer.cs">
+      <DependentUpon>Formtransaction.cs</DependentUpon>
     </Compile>
     <Compile Include="FormStats.cs">
       <SubType>Form</SubType>
@@ -124,11 +118,8 @@
     <EmbeddedResource Include="FormBudget.resx">
       <DependentUpon>FormBudget.cs</DependentUpon>
     </EmbeddedResource>
-    <EmbeddedResource Include="FormExpense.resx">
-      <DependentUpon>FormExpense.cs</DependentUpon>
-    </EmbeddedResource>
-    <EmbeddedResource Include="FormIncome.resx">
-      <DependentUpon>FormIncome.cs</DependentUpon>
+    <EmbeddedResource Include="Formtransaction.resx">
+      <DependentUpon>Formtransaction.cs</DependentUpon>
     </EmbeddedResource>
     <EmbeddedResource Include="FormStats.resx">
       <DependentUpon>FormStats.cs</DependentUpon>
