@@ -19,39 +19,35 @@ namespace WindowsFormsApp4
             InitializeFilters();
             LoadPayTypes();
             LoadCategories();
-
-            // 🔹 이번달 1일 ~ 마지막날 자동 설정
-            dtpStartDate.Value = new DateTime(DateTime.Now.Year, DateTime.Now.Month, 1);
-            dtpEndDate.Value = new DateTime(DateTime.Now.Year, DateTime.Now.Month,
-                                    DateTime.DaysInMonth(DateTime.Now.Year, DateTime.Now.Month));
-
-            LoadTransactions();
             HookEvents();
         }
 
-        // ==============================================================  
-        // 🔵 DB 연결 설정  
-        // ==============================================================  
+        private void Formtransaction_Load(object sender, EventArgs e)
+        {
+            dtpStartDate.Value = new DateTime(DateTime.Now.Year, DateTime.Now.Month, 1);
+            dtpEndDate.Value = new DateTime(
+                DateTime.Now.Year,
+                DateTime.Now.Month,
+                DateTime.Now.Day
+            );
+
+            LoadTransactions();
+        }
+
         private void InitializeDB()
         {
             conn = new OracleConnection(
                 "User Id=BANK_MANAGER; Password=1234; Data Source=localhost:1521/XE;");
         }
 
-        // ==============================================================  
-        // 🔵 필터 설정 (수입/지출/전체)
-        // ==============================================================  
         private void InitializeFilters()
         {
             IncomeExpensecombobox.Items.Add("지출");
             IncomeExpensecombobox.Items.Add("수입");
             IncomeExpensecombobox.Items.Add("전체");
-            IncomeExpensecombobox.SelectedIndex = 2; // 전체 기본
+            IncomeExpensecombobox.SelectedIndex = 2;
         }
 
-        // ==============================================================  
-        // 🔵 결제수단 로드  
-        // ==============================================================  
         private void LoadPayTypes()
         {
             using (OracleCommand cmd = new OracleCommand(
@@ -65,12 +61,11 @@ namespace WindowsFormsApp4
                 cmbTrasactionType.DataSource = dt;
                 cmbTrasactionType.DisplayMember = "NAME";
                 cmbTrasactionType.ValueMember = "TM_ID";
+
+                cmbTrasactionType.SelectedIndex = -1;
             }
         }
 
-        // ==============================================================  
-        // 🔵 카테고리 로드  
-        // ==============================================================  
         private void LoadCategories()
         {
             using (OracleCommand cmd = new OracleCommand(
@@ -84,16 +79,20 @@ namespace WindowsFormsApp4
                 cmbMainCategory.DataSource = dt;
                 cmbMainCategory.DisplayMember = "NAME";
                 cmbMainCategory.ValueMember = "CATEGORY_ID";
+                cmbMainCategory.SelectedIndex = -1;
             }
 
             cmbMainCategory.SelectedIndexChanged += (s, e) =>
             {
-                if (cmbMainCategory.SelectedValue != null)
+                if (isLoading) return;
+
+                if (cmbMainCategory.SelectedIndex >= 0)
                     LoadSubCategories(Convert.ToInt32(cmbMainCategory.SelectedValue));
+                else
+                    ClearSubCategories();
             };
 
-            if (cmbMainCategory.Items.Count > 0)
-                LoadSubCategories(Convert.ToInt32(cmbMainCategory.SelectedValue));
+            ClearSubCategories();
         }
 
         private void LoadSubCategories(int categoryID)
@@ -111,18 +110,30 @@ namespace WindowsFormsApp4
                 cmbSubCategory.DataSource = dt;
                 cmbSubCategory.DisplayMember = "NAME";
                 cmbSubCategory.ValueMember = "SUB_ID";
+                cmbSubCategory.SelectedIndex = -1;
             }
         }
 
-        // ==============================================================  
-        // 🔵 거래내역 로드  
-        // ==============================================================  
+        private void ClearSubCategories()
+        {
+            DataTable dt = new DataTable();
+            dt.Columns.Add("SUB_ID");
+            dt.Columns.Add("NAME");
+
+            cmbSubCategory.DataSource = dt;
+            cmbSubCategory.SelectedIndex = -1;
+        }
+
         private void LoadTransactions()
         {
             isLoading = true;
 
             string sql =
-                "SELECT T.TX_ID AS 거래ID, " +
+                "SELECT " +
+                "T.TX_ID AS 거래ID, " +
+                "T.TM_ID AS TM_ID_RAW, " +
+                "C.CATEGORY_ID AS CAT_ID_RAW, " +
+                "S.SUB_ID AS SUB_ID_RAW, " +
                 "TO_CHAR(T.TX_DATE, 'YYYY-MM-DD') AS 날짜, " +
                 "M.NAME AS 거래수단, " +
                 "S.NAME AS 항목, " +
@@ -135,6 +146,7 @@ namespace WindowsFormsApp4
                 "JOIN CATEGORIES C ON C.CATEGORY_ID = S.CATEGORY_ID " +
                 "WHERE T.TX_DATE BETWEEN :p_start AND :p_end ";
 
+            // 수입/지출 필터만 유지
             if (IncomeExpensecombobox.SelectedIndex == 0)
                 sql += "AND C.TYPE = 'EXPENSE' ";
             else if (IncomeExpensecombobox.SelectedIndex == 1)
@@ -155,33 +167,33 @@ namespace WindowsFormsApp4
 
             dgvTransaction.DataSource = table;
 
-            // 거래ID 숨기기
-            if (dgvTransaction.Columns.Contains("거래ID"))
-                dgvTransaction.Columns["거래ID"].Visible = false;
+            dgvTransaction.Columns["거래ID"].Visible = false;
+            dgvTransaction.Columns["TM_ID_RAW"].Visible = false;
+            dgvTransaction.Columns["CAT_ID_RAW"].Visible = false;
+            dgvTransaction.Columns["SUB_ID_RAW"].Visible = false;
 
-            // 날짜 맨 앞
             dgvTransaction.Columns["날짜"].DisplayIndex = 0;
 
             isLoading = false;
             UpdateTotals();
         }
 
-        // ==============================================================  
-        // 🔵 이벤트 연결  
-        // ==============================================================  
         private void HookEvents()
         {
             dgvTransaction.CellFormatting += DgvTransaction_CellFormatting;
             dgvTransaction.CellClick += DgvTransaction_CellClick;
 
-            dtpStartDate.ValueChanged += (s, e) => LoadTransactions();
-            dtpEndDate.ValueChanged += (s, e) => LoadTransactions();
-            IncomeExpensecombobox.SelectedIndexChanged += (s, e) => LoadTransactions();
+            dtpStartDate.ValueChanged += (s, e) => { if (!isLoading) LoadTransactions(); };
+            dtpEndDate.ValueChanged += (s, e) => { if (!isLoading) LoadTransactions(); };
+
+            IncomeExpensecombobox.SelectedIndexChanged += (s, e) =>
+            {
+                if (!isLoading) LoadTransactions();
+            };
+
+            // 필터 제거 → 변경 이벤트에서 LoadTransactions 제거됨
         }
 
-        // ==============================================================  
-        // 🔵 금액 색깔 설정  
-        // ==============================================================  
         private void DgvTransaction_CellFormatting(object sender, DataGridViewCellFormattingEventArgs e)
         {
             if (isLoading) return;
@@ -203,20 +215,32 @@ namespace WindowsFormsApp4
             }
         }
 
-        // ==============================================================  
-        // 🔵 셀 클릭 시 입력창에 출력  
-        // ==============================================================  
         private void DgvTransaction_CellClick(object sender, DataGridViewCellEventArgs e)
         {
             if (e.RowIndex < 0) return;
 
-            txtAmount.Text = table.Rows[e.RowIndex]["금액"].ToString();
-            txtMemo.Text = table.Rows[e.RowIndex]["메모"].ToString();
+            DataRow row = table.Rows[e.RowIndex];
+
+            txtAmount.Text = row["금액"].ToString();
+            txtMemo.Text = row["메모"].ToString();
+
+            // 거래수단 선택
+            cmbTrasactionType.SelectedValue =
+                Convert.ToInt32(row["TM_ID_RAW"]);
+
+            // 카테고리 선택
+            cmbMainCategory.SelectedValue =
+                Convert.ToInt32(row["CAT_ID_RAW"]);
+
+            // 서브카테고리는 카테고리 로드 후 선택 필요
+            int subId = Convert.ToInt32(row["SUB_ID_RAW"]);
+
+            this.BeginInvoke(new Action(() =>
+            {
+                cmbSubCategory.SelectedValue = subId;
+            }));
         }
 
-        // ==============================================================  
-        // 🔵 총액 계산  
-        // ==============================================================  
         private void UpdateTotals()
         {
             decimal income = 0, expense = 0;
@@ -237,30 +261,10 @@ namespace WindowsFormsApp4
             lblExpenseAmount.ForeColor = Color.Red;
         }
 
-        // ==============================================================  
-        // 🔵 **공통: 거래수단이 '전체'이면 추가/수정/삭제 금지**  
-        // ==============================================================  
-        private bool ValidateBeforeEdit()
-        {
-            if (IncomeExpensecombobox.SelectedIndex == 2) // 전체
-            {
-                MessageBox.Show("수입 또는 지출을 선택해주세요.", "알림",
-                    MessageBoxButtons.OK, MessageBoxIcon.Warning);
-                return false;
-            }
-            return true;
-        }
-
-        // ==============================================================  
-        // 🔵 거래 추가  
-        // ==============================================================  
         private void btnAdd_Click(object sender, EventArgs e)
         {
-            if (!ValidateBeforeEdit()) return;
-
             using (OracleCommand cmd = new OracleCommand(
-                "INSERT INTO TRANSACTIONS (TX_ID, TM_ID, SUB_ID, AMOUNT, TX_DATE, MEMO) " +
-                "VALUES (SEQ_TX.NEXTVAL, :tm, :sub, :amt, SYSDATE, :memo)", conn))
+                "INSERT INTO TRANSACTIONS (TX_ID, TM_ID, SUB_ID, AMOUNT, TX_DATE, MEMO) VALUES (SEQ_TX.NEXTVAL, :tm, :sub, :amt, SYSDATE, :memo)", conn))
             {
                 cmd.Parameters.Add(":tm", cmbTrasactionType.SelectedValue);
                 cmd.Parameters.Add(":sub", cmbSubCategory.SelectedValue);
@@ -275,12 +279,8 @@ namespace WindowsFormsApp4
             LoadTransactions();
         }
 
-        // ==============================================================  
-        // 🔵 거래 수정  
-        // ==============================================================  
         private void btnUpdate_Click(object sender, EventArgs e)
         {
-            if (!ValidateBeforeEdit()) return;
             if (dgvTransaction.CurrentRow == null) return;
 
             int txId = Convert.ToInt32(dgvTransaction.CurrentRow.Cells["거래ID"].Value);
@@ -302,12 +302,8 @@ namespace WindowsFormsApp4
             LoadTransactions();
         }
 
-        // ==============================================================  
-        // 🔵 거래 삭제  
-        // ==============================================================  
         private void btnDelete_Click(object sender, EventArgs e)
         {
-            if (!ValidateBeforeEdit()) return;
             if (dgvTransaction.CurrentRow == null) return;
 
             int txId = Convert.ToInt32(dgvTransaction.CurrentRow.Cells["거래ID"].Value);
@@ -321,6 +317,13 @@ namespace WindowsFormsApp4
                 cmd.ExecuteNonQuery();
                 conn.Close();
             }
+
+            LoadTransactions();
+        }
+
+        private void ALLBtn_Click(object sender, EventArgs e)
+        {
+            IncomeExpensecombobox.SelectedIndex = 2;
 
             LoadTransactions();
         }
