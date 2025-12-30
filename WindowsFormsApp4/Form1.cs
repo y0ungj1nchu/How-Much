@@ -37,5 +37,11 @@ namespace WindowsFormsApp4
         {
             LoadForm(new FormStats());
         }
+
+        private void btnAccount_Click(object sender, EventArgs e)
+        {
+            LoadForm(new FormAccount());
+        }
+
     }
 }

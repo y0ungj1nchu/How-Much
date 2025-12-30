@@ -12,6 +12,13 @@
         private System.Windows.Forms.Label lblCategory;
         private System.Windows.Forms.Label lblAmount;
 
+        private System.Windows.Forms.DataGridView dgvThisMonth;
+        private System.Windows.Forms.Panel panelGridContainer;
+        private System.Windows.Forms.Panel panelLeft;
+        private System.Windows.Forms.Panel panelRight;
+
+        private System.Windows.Forms.DataVisualization.Charting.Chart chartBudget;
+
         protected override void Dispose(bool disposing)
         {
             if (disposing && (components != null))
@@ -24,26 +31,31 @@
         #region Windows Form Designer generated code
         private void InitializeComponent()
         {
+            System.Windows.Forms.DataVisualization.Charting.ChartArea chartArea4 = new System.Windows.Forms.DataVisualization.Charting.ChartArea();
+            System.Windows.Forms.DataVisualization.Charting.Legend legend4 = new System.Windows.Forms.DataVisualization.Charting.Legend();
             this.panelTop = new System.Windows.Forms.Panel();
             this.cmbMonth = new System.Windows.Forms.DateTimePicker();
             this.lblTitle = new System.Windows.Forms.Label();
             this.panelInput = new System.Windows.Forms.Panel();
             this.cmbMainCategory = new System.Windows.Forms.ComboBox();
-            this.lblMemo = new System.Windows.Forms.Label();
-            this.txtMemo = new System.Windows.Forms.TextBox();
             this.button1 = new System.Windows.Forms.Button();
             this.button2 = new System.Windows.Forms.Button();
             this.button3 = new System.Windows.Forms.Button();
             this.lblCategory = new System.Windows.Forms.Label();
             this.lblAmount = new System.Windows.Forms.Label();
             this.txtAmount = new System.Windows.Forms.TextBox();
-            this.listView1 = new System.Windows.Forms.ListView();
-            this.columnHeader1 = ((System.Windows.Forms.ColumnHeader)(new System.Windows.Forms.ColumnHeader()));
-            this.columnHeader2 = ((System.Windows.Forms.ColumnHeader)(new System.Windows.Forms.ColumnHeader()));
-            this.columnHeader3 = ((System.Windows.Forms.ColumnHeader)(new System.Windows.Forms.ColumnHeader()));
-            this.columnHeader4 = ((System.Windows.Forms.ColumnHeader)(new System.Windows.Forms.ColumnHeader()));
+            this.panelGridContainer = new System.Windows.Forms.Panel();
+            this.panelRight = new System.Windows.Forms.Panel();
+            this.chartBudget = new System.Windows.Forms.DataVisualization.Charting.Chart();
+            this.panelLeft = new System.Windows.Forms.Panel();
+            this.dgvThisMonth = new System.Windows.Forms.DataGridView();
             this.panelTop.SuspendLayout();
             this.panelInput.SuspendLayout();
+            this.panelGridContainer.SuspendLayout();
+            this.panelRight.SuspendLayout();
+            ((System.ComponentModel.ISupportInitialize)(this.chartBudget)).BeginInit();
+            this.panelLeft.SuspendLayout();
+            ((System.ComponentModel.ISupportInitialize)(this.dgvThisMonth)).BeginInit();
             this.SuspendLayout();
             // 
             // panelTop
@@ -53,9 +65,8 @@
             this.panelTop.Controls.Add(this.lblTitle);
             this.panelTop.Dock = System.Windows.Forms.DockStyle.Top;
             this.panelTop.Location = new System.Drawing.Point(0, 0);
-            this.panelTop.Margin = new System.Windows.Forms.Padding(4);
             this.panelTop.Name = "panelTop";
-            this.panelTop.Size = new System.Drawing.Size(1200, 93);
+            this.panelTop.Size = new System.Drawing.Size(1400, 93);
             this.panelTop.TabIndex = 2;
             // 
             // cmbMonth
@@ -63,13 +74,10 @@
             this.cmbMonth.CustomFormat = "yyyy-MM";
             this.cmbMonth.Font = new System.Drawing.Font("맑은 고딕", 10F);
             this.cmbMonth.Format = System.Windows.Forms.DateTimePickerFormat.Custom;
-            this.cmbMonth.Location = new System.Drawing.Point(1026, 22);
-            this.cmbMonth.Margin = new System.Windows.Forms.Padding(4);
+            this.cmbMonth.Location = new System.Drawing.Point(1182, 31);
             this.cmbMonth.Name = "cmbMonth";
-            this.cmbMonth.RightToLeft = System.Windows.Forms.RightToLeft.No;
             this.cmbMonth.Size = new System.Drawing.Size(130, 34);
-            this.cmbMonth.TabIndex = 6;
-            this.cmbMonth.Value = new System.DateTime(2025, 11, 27, 0, 0, 0, 0);
+            this.cmbMonth.TabIndex = 0;
             this.cmbMonth.ValueChanged += new System.EventHandler(this.cmbMonth_ValueChanged);
             // 
             // lblTitle
@@ -78,18 +86,15 @@
             this.lblTitle.Font = new System.Drawing.Font("맑은 고딕", 16F, System.Drawing.FontStyle.Bold);
             this.lblTitle.ForeColor = System.Drawing.Color.White;
             this.lblTitle.Location = new System.Drawing.Point(30, 22);
-            this.lblTitle.Margin = new System.Windows.Forms.Padding(4, 0, 4, 0);
             this.lblTitle.Name = "lblTitle";
             this.lblTitle.Size = new System.Drawing.Size(215, 45);
-            this.lblTitle.TabIndex = 0;
+            this.lblTitle.TabIndex = 1;
             this.lblTitle.Text = "💰 예산 관리";
             // 
             // panelInput
             // 
             this.panelInput.BackColor = System.Drawing.Color.WhiteSmoke;
             this.panelInput.Controls.Add(this.cmbMainCategory);
-            this.panelInput.Controls.Add(this.lblMemo);
-            this.panelInput.Controls.Add(this.txtMemo);
             this.panelInput.Controls.Add(this.button1);
             this.panelInput.Controls.Add(this.button2);
             this.panelInput.Controls.Add(this.button3);
@@ -98,52 +103,27 @@
             this.panelInput.Controls.Add(this.txtAmount);
             this.panelInput.Dock = System.Windows.Forms.DockStyle.Top;
             this.panelInput.Location = new System.Drawing.Point(0, 93);
-            this.panelInput.Margin = new System.Windows.Forms.Padding(4);
             this.panelInput.Name = "panelInput";
             this.panelInput.Padding = new System.Windows.Forms.Padding(30);
-            this.panelInput.Size = new System.Drawing.Size(1200, 227);
+            this.panelInput.Size = new System.Drawing.Size(1400, 227);
             this.panelInput.TabIndex = 1;
             // 
             // cmbMainCategory
             // 
-            this.cmbMainCategory.FormattingEnabled = true;
-            this.cmbMainCategory.Location = new System.Drawing.Point(198, 41);
+            this.cmbMainCategory.Location = new System.Drawing.Point(266, 56);
             this.cmbMainCategory.Name = "cmbMainCategory";
             this.cmbMainCategory.Size = new System.Drawing.Size(302, 26);
-            this.cmbMainCategory.TabIndex = 12;
-            // 
-            // lblMemo
-            // 
-            this.lblMemo.AutoSize = true;
-            this.lblMemo.Font = new System.Drawing.Font("맑은 고딕", 10F);
-            this.lblMemo.Location = new System.Drawing.Point(523, 30);
-            this.lblMemo.Margin = new System.Windows.Forms.Padding(4, 0, 4, 0);
-            this.lblMemo.Name = "lblMemo";
-            this.lblMemo.Size = new System.Drawing.Size(52, 28);
-            this.lblMemo.TabIndex = 15;
-            this.lblMemo.Text = "메모";
-            // 
-            // txtMemo
-            // 
-            this.txtMemo.Font = new System.Drawing.Font("맑은 고딕", 10F);
-            this.txtMemo.Location = new System.Drawing.Point(523, 75);
-            this.txtMemo.Margin = new System.Windows.Forms.Padding(4);
-            this.txtMemo.Multiline = true;
-            this.txtMemo.Name = "txtMemo";
-            this.txtMemo.Size = new System.Drawing.Size(421, 118);
-            this.txtMemo.TabIndex = 16;
+            this.cmbMainCategory.TabIndex = 0;
             // 
             // button1
             // 
             this.button1.BackColor = System.Drawing.Color.Silver;
             this.button1.FlatStyle = System.Windows.Forms.FlatStyle.Flat;
             this.button1.Font = new System.Drawing.Font("맑은 고딕", 10F, System.Drawing.FontStyle.Bold);
-            this.button1.ForeColor = System.Drawing.Color.Black;
-            this.button1.Location = new System.Drawing.Point(991, 15);
-            this.button1.Margin = new System.Windows.Forms.Padding(4);
+            this.button1.Location = new System.Drawing.Point(355, 142);
             this.button1.Name = "button1";
             this.button1.Size = new System.Drawing.Size(135, 52);
-            this.button1.TabIndex = 12;
+            this.button1.TabIndex = 3;
             this.button1.Text = "추가";
             this.button1.UseVisualStyleBackColor = false;
             this.button1.Click += new System.EventHandler(this.buttonAdd_Click);
@@ -153,11 +133,10 @@
             this.button2.BackColor = System.Drawing.Color.Silver;
             this.button2.FlatStyle = System.Windows.Forms.FlatStyle.Flat;
             this.button2.Font = new System.Drawing.Font("맑은 고딕", 10F, System.Drawing.FontStyle.Bold);
-            this.button2.Location = new System.Drawing.Point(991, 83);
-            this.button2.Margin = new System.Windows.Forms.Padding(4);
+            this.button2.Location = new System.Drawing.Point(590, 142);
             this.button2.Name = "button2";
             this.button2.Size = new System.Drawing.Size(135, 52);
-            this.button2.TabIndex = 13;
+            this.button2.TabIndex = 4;
             this.button2.Text = "수정";
             this.button2.UseVisualStyleBackColor = false;
             this.button2.Click += new System.EventHandler(this.buttonUpdate_Click);
@@ -167,12 +146,10 @@
             this.button3.BackColor = System.Drawing.Color.Silver;
             this.button3.FlatStyle = System.Windows.Forms.FlatStyle.Flat;
             this.button3.Font = new System.Drawing.Font("맑은 고딕", 10F, System.Drawing.FontStyle.Bold);
-            this.button3.ForeColor = System.Drawing.Color.Black;
-            this.button3.Location = new System.Drawing.Point(991, 150);
-            this.button3.Margin = new System.Windows.Forms.Padding(4);
+            this.button3.Location = new System.Drawing.Point(821, 142);
             this.button3.Name = "button3";
             this.button3.Size = new System.Drawing.Size(135, 52);
-            this.button3.TabIndex = 14;
+            this.button3.TabIndex = 5;
             this.button3.Text = "삭제";
             this.button3.UseVisualStyleBackColor = false;
             this.button3.Click += new System.EventHandler(this.buttonDelete_Click);
@@ -181,109 +158,115 @@
             // 
             this.lblCategory.AutoSize = true;
             this.lblCategory.Font = new System.Drawing.Font("맑은 고딕", 10F);
-            this.lblCategory.Location = new System.Drawing.Point(63, 36);
-            this.lblCategory.Margin = new System.Windows.Forms.Padding(4, 0, 4, 0);
+            this.lblCategory.Location = new System.Drawing.Point(131, 51);
             this.lblCategory.Name = "lblCategory";
             this.lblCategory.Size = new System.Drawing.Size(92, 28);
-            this.lblCategory.TabIndex = 0;
+            this.lblCategory.TabIndex = 6;
             this.lblCategory.Text = "카테고리";
             // 
             // lblAmount
             // 
             this.lblAmount.AutoSize = true;
             this.lblAmount.Font = new System.Drawing.Font("맑은 고딕", 10F);
-            this.lblAmount.Location = new System.Drawing.Point(63, 108);
-            this.lblAmount.Margin = new System.Windows.Forms.Padding(4, 0, 4, 0);
+            this.lblAmount.Location = new System.Drawing.Point(609, 52);
             this.lblAmount.Name = "lblAmount";
             this.lblAmount.Size = new System.Drawing.Size(99, 28);
-            this.lblAmount.TabIndex = 1;
+            this.lblAmount.TabIndex = 7;
             this.lblAmount.Text = "예산 금액";
             // 
             // txtAmount
             // 
             this.txtAmount.Font = new System.Drawing.Font("맑은 고딕", 10F);
-            this.txtAmount.Location = new System.Drawing.Point(198, 104);
-            this.txtAmount.Margin = new System.Windows.Forms.Padding(4);
+            this.txtAmount.Location = new System.Drawing.Point(744, 48);
             this.txtAmount.Name = "txtAmount";
             this.txtAmount.Size = new System.Drawing.Size(302, 34);
-            this.txtAmount.TabIndex = 4;
+            this.txtAmount.TabIndex = 8;
             // 
-            // listView1
+            // panelGridContainer
             // 
-            this.listView1.AllowColumnReorder = true;
-            this.listView1.Columns.AddRange(new System.Windows.Forms.ColumnHeader[] {
-            this.columnHeader1,
-            this.columnHeader2,
-            this.columnHeader3,
-            this.columnHeader4});
-            this.listView1.Dock = System.Windows.Forms.DockStyle.Fill;
-            this.listView1.FullRowSelect = true;
-            this.listView1.GridLines = true;
-            this.listView1.HeaderStyle = System.Windows.Forms.ColumnHeaderStyle.Nonclickable;
-            this.listView1.HideSelection = false;
-            this.listView1.Location = new System.Drawing.Point(0, 320);
-            this.listView1.Margin = new System.Windows.Forms.Padding(0);
-            this.listView1.Name = "listView1";
-            this.listView1.Size = new System.Drawing.Size(1200, 580);
-            this.listView1.TabIndex = 3;
-            this.listView1.UseCompatibleStateImageBehavior = false;
-            this.listView1.View = System.Windows.Forms.View.Details;
-            this.listView1.SelectedIndexChanged += new System.EventHandler(this.ListView1_SelectedIndexChanged);
+            this.panelGridContainer.Controls.Add(this.panelRight);
+            this.panelGridContainer.Controls.Add(this.panelLeft);
+            this.panelGridContainer.Dock = System.Windows.Forms.DockStyle.Fill;
+            this.panelGridContainer.Location = new System.Drawing.Point(0, 320);
+            this.panelGridContainer.Name = "panelGridContainer";
+            this.panelGridContainer.Size = new System.Drawing.Size(1400, 580);
+            this.panelGridContainer.TabIndex = 0;
             // 
-            // columnHeader1
+            // panelRight
             // 
-            this.columnHeader1.Text = "년월";
-            this.columnHeader1.Width = 80;
+            this.panelRight.Controls.Add(this.chartBudget);
+            this.panelRight.Dock = System.Windows.Forms.DockStyle.Fill;
+            this.panelRight.Location = new System.Drawing.Point(700, 0);
+            this.panelRight.Name = "panelRight";
+            this.panelRight.Padding = new System.Windows.Forms.Padding(20);
+            this.panelRight.Size = new System.Drawing.Size(700, 580);
+            this.panelRight.TabIndex = 0;
             // 
-            // columnHeader2
+            // chartBudget
             // 
-            this.columnHeader2.Text = "카테고리";
-            this.columnHeader2.TextAlign = System.Windows.Forms.HorizontalAlignment.Center;
-            this.columnHeader2.Width = 100;
+            this.chartBudget.BackColor = System.Drawing.Color.WhiteSmoke;
+            chartArea4.Name = "ChartArea1";
+            this.chartBudget.ChartAreas.Add(chartArea4);
+            this.chartBudget.Dock = System.Windows.Forms.DockStyle.Fill;
+            legend4.Name = "Legend1";
+            this.chartBudget.Legends.Add(legend4);
+            this.chartBudget.Location = new System.Drawing.Point(20, 20);
+            this.chartBudget.Name = "chartBudget";
+            this.chartBudget.Size = new System.Drawing.Size(660, 540);
+            this.chartBudget.TabIndex = 0;
             // 
-            // columnHeader3
+            // panelLeft
             // 
-            this.columnHeader3.Text = "예산금액";
-            this.columnHeader3.TextAlign = System.Windows.Forms.HorizontalAlignment.Right;
-            this.columnHeader3.Width = 100;
+            this.panelLeft.Controls.Add(this.dgvThisMonth);
+            this.panelLeft.Dock = System.Windows.Forms.DockStyle.Left;
+            this.panelLeft.Location = new System.Drawing.Point(0, 0);
+            this.panelLeft.Name = "panelLeft";
+            this.panelLeft.Size = new System.Drawing.Size(700, 580);
+            this.panelLeft.TabIndex = 1;
             // 
-            // columnHeader4
+            // dgvThisMonth
             // 
-            this.columnHeader4.Text = "메모";
-            this.columnHeader4.Width = 200;
+            this.dgvThisMonth.AutoSizeColumnsMode = System.Windows.Forms.DataGridViewAutoSizeColumnsMode.Fill;
+            this.dgvThisMonth.BackgroundColor = System.Drawing.Color.WhiteSmoke;
+            this.dgvThisMonth.ColumnHeadersHeight = 34;
+            this.dgvThisMonth.Dock = System.Windows.Forms.DockStyle.Fill;
+            this.dgvThisMonth.Location = new System.Drawing.Point(0, 0);
+            this.dgvThisMonth.Name = "dgvThisMonth";
+            this.dgvThisMonth.RowHeadersWidth = 62;
+            this.dgvThisMonth.Size = new System.Drawing.Size(700, 580);
+            this.dgvThisMonth.TabIndex = 0;
+            this.dgvThisMonth.CellClick += new System.Windows.Forms.DataGridViewCellEventHandler(this.Dgv_CellClick);
             // 
             // FormBudget
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(144F, 144F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Dpi;
-            this.ClientSize = new System.Drawing.Size(1200, 900);
-            this.Controls.Add(this.listView1);
+            this.ClientSize = new System.Drawing.Size(1400, 900);
+            this.Controls.Add(this.panelGridContainer);
             this.Controls.Add(this.panelInput);
             this.Controls.Add(this.panelTop);
             this.FormBorderStyle = System.Windows.Forms.FormBorderStyle.None;
-            this.Margin = new System.Windows.Forms.Padding(4);
             this.Name = "FormBudget";
             this.Text = "FormBudget";
             this.panelTop.ResumeLayout(false);
             this.panelTop.PerformLayout();
             this.panelInput.ResumeLayout(false);
             this.panelInput.PerformLayout();
+            this.panelGridContainer.ResumeLayout(false);
+            this.panelRight.ResumeLayout(false);
+            ((System.ComponentModel.ISupportInitialize)(this.chartBudget)).EndInit();
+            this.panelLeft.ResumeLayout(false);
+            ((System.ComponentModel.ISupportInitialize)(this.dgvThisMonth)).EndInit();
             this.ResumeLayout(false);
 
         }
         #endregion
+
         private System.Windows.Forms.DateTimePicker cmbMonth;
-        private System.Windows.Forms.ListView listView1;
+        private System.Windows.Forms.ComboBox cmbMainCategory;
         private System.Windows.Forms.Button button1;
         private System.Windows.Forms.Button button2;
         private System.Windows.Forms.Button button3;
-        private System.Windows.Forms.Label lblMemo;
-        private System.Windows.Forms.TextBox txtMemo;
-        private System.Windows.Forms.ComboBox cmbMainCategory;
         private System.Windows.Forms.TextBox txtAmount;
-        private System.Windows.Forms.ColumnHeader columnHeader1;
-        private System.Windows.Forms.ColumnHeader columnHeader2;
-        private System.Windows.Forms.ColumnHeader columnHeader3;
-        private System.Windows.Forms.ColumnHeader columnHeader4;
     }
 }

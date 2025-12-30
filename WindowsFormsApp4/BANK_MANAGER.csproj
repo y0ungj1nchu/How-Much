@@ -65,7 +65,7 @@
     <ApplicationManifest>Properties\app.manifest</ApplicationManifest>
   </PropertyGroup>
   <PropertyGroup>
-    <SignManifests>false</SignManifests>
+    <SignManifests>true</SignManifests>
   </PropertyGroup>
   <ItemGroup>
     <Reference Include="Oracle.DataAccess, Version=4.112.2.0, Culture=neutral, PublicKeyToken=89b483f429c47342, processorArchitecture=AMD64">
@@ -86,11 +86,33 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="TransactionRepository.cs" />
+    <Compile Include="TransactionCalculator.cs" />
+    <Compile Include="TransactionModel.cs" />
+    <Compile Include="DatabaseManager.cs" />
     <Compile Include="Form1.cs">
       <SubType>Form</SubType>
     </Compile>
     <Compile Include="Form1.Designer.cs">
       <DependentUpon>Form1.cs</DependentUpon>
+    </Compile>
+    <Compile Include="FormAccount.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="FormAccount.Designer.cs">
+      <DependentUpon>FormAccount.cs</DependentUpon>
+    </Compile>
+    <Compile Include="Formtransactionmethod.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="Formtransactionmethod.Designer.cs">
+      <DependentUpon>Formtransactionmethod.cs</DependentUpon>
+    </Compile>
+    <Compile Include="Searchcategory.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="Searchcategory.Designer.cs">
+      <DependentUpon>Searchcategory.cs</DependentUpon>
     </Compile>
     <Compile Include="FormBudget.cs">
       <SubType>Form</SubType>
@@ -114,6 +136,15 @@
     <Compile Include="Properties\AssemblyInfo.cs" />
     <EmbeddedResource Include="Form1.resx">
       <DependentUpon>Form1.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="FormAccount.resx">
+      <DependentUpon>FormAccount.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Formtransactionmethod.resx">
+      <DependentUpon>Formtransactionmethod.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Searchcategory.resx">
+      <DependentUpon>Searchcategory.cs</DependentUpon>
     </EmbeddedResource>
     <EmbeddedResource Include="FormBudget.resx">
       <DependentUpon>FormBudget.cs</DependentUpon>

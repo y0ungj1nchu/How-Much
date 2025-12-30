@@ -1,9 +1,11 @@
 ------------------------------------------------------------
--- 1) Í∏∞Ï°¥ Í∞ùÏ≤¥ Ï†úÍ±∞ (DROP)
+-- 0) ±‚¡∏ ∞¥√º ¡¶∞≈ (DROP)
 ------------------------------------------------------------
 
 -- SEQUENCES
-BEGIN EXECUTE IMMEDIATE 'DROP SEQUENCE SEQ_TM'; EXCEPTION WHEN OTHERS THEN NULL; END;
+BEGIN EXECUTE IMMEDIATE 'DROP SEQUENCE SEQ_ASSET'; EXCEPTION WHEN OTHERS THEN NULL; END;
+/
+BEGIN EXECUTE IMMEDIATE 'DROP SEQUENCE SEQ_METHOD'; EXCEPTION WHEN OTHERS THEN NULL; END;
 /
 BEGIN EXECUTE IMMEDIATE 'DROP SEQUENCE SEQ_CATS'; EXCEPTION WHEN OTHERS THEN NULL; END;
 /
@@ -29,63 +31,100 @@ BEGIN EXECUTE IMMEDIATE 'DROP TABLE SUB_CATEGORIES CASCADE CONSTRAINTS'; EXCEPTI
 /
 BEGIN EXECUTE IMMEDIATE 'DROP TABLE CATEGORIES CASCADE CONSTRAINTS'; EXCEPTION WHEN OTHERS THEN NULL; END;
 /
-BEGIN EXECUTE IMMEDIATE 'DROP TABLE TRANSACTION_METHODS CASCADE CONSTRAINTS'; EXCEPTION WHEN OTHERS THEN NULL; END;
+BEGIN EXECUTE IMMEDIATE 'DROP TABLE PAY_METHODS CASCADE CONSTRAINTS'; EXCEPTION WHEN OTHERS THEN NULL; END;
+/
+BEGIN EXECUTE IMMEDIATE 'DROP TABLE ASSETS CASCADE CONSTRAINTS'; EXCEPTION WHEN OTHERS THEN NULL; END;
 /
 
 ------------------------------------------------------------
--- 2) ÏãúÌÄÄÏä§ ÏÉùÏÑ±
+-- 1) Ω√ƒˆΩ∫ ª˝º∫
 ------------------------------------------------------------
 
-CREATE SEQUENCE SEQ_TM          START WITH 1 INCREMENT BY 1;
-CREATE SEQUENCE SEQ_CATS        START WITH 1 INCREMENT BY 1;
-CREATE SEQUENCE SEQ_SUB_CATS    START WITH 1 INCREMENT BY 1;
-CREATE SEQUENCE SEQ_FIXED_EXP   START WITH 1 INCREMENT BY 1;
-CREATE SEQUENCE SEQ_TX          START WITH 1 INCREMENT BY 1;
-CREATE SEQUENCE SEQ_BUDGETS     START WITH 1 INCREMENT BY 1;
+CREATE SEQUENCE SEQ_ASSET     START WITH 1 INCREMENT BY 1;
+CREATE SEQUENCE SEQ_METHOD    START WITH 1 INCREMENT BY 1;
+CREATE SEQUENCE SEQ_CATS      START WITH 1 INCREMENT BY 1;
+CREATE SEQUENCE SEQ_SUB_CATS  START WITH 1 INCREMENT BY 1;
+CREATE SEQUENCE SEQ_FIXED_EXP START WITH 1 INCREMENT BY 1;
+CREATE SEQUENCE SEQ_TX        START WITH 1 INCREMENT BY 1;
+CREATE SEQUENCE SEQ_BUDGETS   START WITH 1 INCREMENT BY 1;
 
 ------------------------------------------------------------
--- 3) ÌÖåÏù¥Î∏î ÏÉùÏÑ±
+-- 2) ≈◊¿Ã∫Ì ª˝º∫
 ------------------------------------------------------------
 
-CREATE TABLE TRANSACTION_METHODS (
-    TM_ID        NUMBER         NOT NULL,
-    NAME         VARCHAR2(50)   NOT NULL,
-    TYPE         VARCHAR2(10)   NOT NULL,
-    BALANCE      NUMBER         DEFAULT 0,
-    BILLING_DAY  NUMBER         DEFAULT NULL,
-    CONSTRAINT PK_TM PRIMARY KEY (TM_ID)
+------------------------------------------------------------
+-- ASSETS (¿⁄ªÍ)
+------------------------------------------------------------
+
+CREATE TABLE ASSETS (
+    ASSET_ID    NUMBER        NOT NULL,
+    NAME        VARCHAR2(50)  NOT NULL,
+    TYPE        VARCHAR2(20)  NOT NULL,  -- BANK / CASH / SECURITIES
+    BALANCE     NUMBER        DEFAULT 0,
+    CONSTRAINT PK_ASSETS PRIMARY KEY (ASSET_ID)
 );
+
+------------------------------------------------------------
+-- PAY_METHODS (∞≈∑°ºˆ¥‹)
+------------------------------------------------------------
+
+CREATE TABLE PAY_METHODS (
+    METHOD_ID   NUMBER        NOT NULL,
+    NAME        VARCHAR2(50)  NOT NULL,
+    TYPE        VARCHAR2(20)  NOT NULL,  -- CREDIT / CHECK / CASH / TRANSFER / SIMPLEPAY
+    ASSET_ID    NUMBER        NULL,      -- CHECK/CASH/TRANSFER ø¨∞·
+    BILLING_DAY NUMBER        NULL,
+    CONSTRAINT PK_METHODS PRIMARY KEY (METHOD_ID),
+    CONSTRAINT FK_METHOD_ASSET FOREIGN KEY (ASSET_ID)
+        REFERENCES ASSETS(ASSET_ID)
+);
+
+------------------------------------------------------------
+-- ƒ´≈◊∞Ì∏Æ
+------------------------------------------------------------
 
 CREATE TABLE CATEGORIES (
-    CATEGORY_ID  NUMBER          NOT NULL,
-    NAME         VARCHAR2(50)    NOT NULL,
-    TYPE         VARCHAR2(10)    NOT NULL,
-    CONSTRAINT PK_CATS PRIMARY KEY (CATEGORY_ID)
+    CATEGORY_ID  NUMBER        NOT NULL,
+    NAME         VARCHAR2(50)  NOT NULL,
+    TYPE         VARCHAR2(10)  NOT NULL,   -- EXPENSE / INCOME
+    CONSTRAINT PK_CATEGORIES PRIMARY KEY (CATEGORY_ID)
 );
+
+------------------------------------------------------------
+-- º≠∫Íƒ´≈◊∞Ì∏Æ
+------------------------------------------------------------
 
 CREATE TABLE SUB_CATEGORIES (
-    SUB_ID        NUMBER          NOT NULL,
-    CATEGORY_ID   NUMBER          NOT NULL,
-    NAME          VARCHAR2(50)    NOT NULL,
-    CONSTRAINT PK_SUB_CATS PRIMARY KEY (SUB_ID),
-    CONSTRAINT FK_SUB_CATS FOREIGN KEY (CATEGORY_ID)
+    SUB_ID        NUMBER        NOT NULL,
+    CATEGORY_ID   NUMBER        NOT NULL,
+    NAME          VARCHAR2(50)  NOT NULL,
+    CONSTRAINT PK_SUB_CATEGORIES PRIMARY KEY (SUB_ID),
+    CONSTRAINT FK_SUB_CATEGORY FOREIGN KEY (CATEGORY_ID)
         REFERENCES CATEGORIES(CATEGORY_ID)
 );
 
+------------------------------------------------------------
+-- øπªÍ
+------------------------------------------------------------
+
 CREATE TABLE BUDGETS (
-    BUDGET_ID    NUMBER         NOT NULL,
-    CATEGORY_ID  NUMBER         NOT NULL,
-    YYYYMM       VARCHAR2(6)    NOT NULL,
-    AMOUNT       NUMBER         DEFAULT 0,
+    BUDGET_ID    NUMBER       NOT NULL,
+    CATEGORY_ID  NUMBER       NOT NULL,
+    YYYYMM       VARCHAR2(6)  NOT NULL,
+    AMOUNT       NUMBER       DEFAULT 0,
     CONSTRAINT PK_BUDGETS PRIMARY KEY (BUDGET_ID),
-    CONSTRAINT FK_BUDGET_CATS FOREIGN KEY (CATEGORY_ID)
+    CONSTRAINT FK_BUDGET_CATEGORY FOREIGN KEY (CATEGORY_ID)
         REFERENCES CATEGORIES(CATEGORY_ID)
 );
+
+------------------------------------------------------------
+-- ¡§±‚ ¡ˆ√‚
+------------------------------------------------------------
 
 CREATE TABLE FIXED_EXPENSES (
     FIXED_EXP_ID NUMBER          NOT NULL,
     SUB_ID       NUMBER          NOT NULL,
-    TM_ID        NUMBER          NOT NULL,
+    METHOD_ID    NUMBER          NOT NULL,
     NAME         VARCHAR2(100)   NOT NULL,
     AMOUNT       NUMBER          NOT NULL,
     CYCLE_TYPE   VARCHAR2(10)    DEFAULT 'MONTHLY',
@@ -95,186 +134,262 @@ CREATE TABLE FIXED_EXPENSES (
     CONSTRAINT PK_FIXED_EXP PRIMARY KEY (FIXED_EXP_ID),
     CONSTRAINT FK_FIXED_SUB FOREIGN KEY (SUB_ID)
         REFERENCES SUB_CATEGORIES(SUB_ID),
-    CONSTRAINT FK_FIXED_TM FOREIGN KEY (TM_ID)
-        REFERENCES TRANSACTION_METHODS(TM_ID)
+    CONSTRAINT FK_FIXED_METHOD FOREIGN KEY (METHOD_ID)
+        REFERENCES PAY_METHODS(METHOD_ID)
 );
+
+------------------------------------------------------------
+-- ∞≈∑°≥ªø™ (Transactions)
+------------------------------------------------------------
 
 CREATE TABLE TRANSACTIONS (
     TX_ID         NUMBER         NOT NULL,
-    TM_ID         NUMBER         NOT NULL,
+    METHOD_ID     NUMBER         NOT NULL,
+    ASSET_ID      NUMBER         NULL,     -- Ω≈øÎƒ´µÂ¥¬ NULL
     SUB_ID        NUMBER         NOT NULL,
-    FIXED_EXP_ID  NUMBER         DEFAULT NULL,
+    FIXED_EXP_ID  NUMBER         NULL,
     AMOUNT        NUMBER         NOT NULL,
-    TX_DATE       DATE           DEFAULT SYSDATE NOT NULL,
+    TX_DATE       DATE           NOT NULL,
     MEMO          VARCHAR2(200),
     CREATED_AT    DATE           DEFAULT SYSDATE,
     CONSTRAINT PK_TX PRIMARY KEY (TX_ID),
-    CONSTRAINT FK_TX_TM FOREIGN KEY (TM_ID)
-        REFERENCES TRANSACTION_METHODS(TM_ID),
+    CONSTRAINT FK_TX_METHOD FOREIGN KEY (METHOD_ID)
+        REFERENCES PAY_METHODS(METHOD_ID),
+    CONSTRAINT FK_TX_ASSET FOREIGN KEY (ASSET_ID)
+        REFERENCES ASSETS(ASSET_ID),
     CONSTRAINT FK_TX_SUB FOREIGN KEY (SUB_ID)
         REFERENCES SUB_CATEGORIES(SUB_ID),
     CONSTRAINT FK_TX_FIXED FOREIGN KEY (FIXED_EXP_ID)
         REFERENCES FIXED_EXPENSES(FIXED_EXP_ID)
 );
 
+------------------------------------------------------------
+-- «“∫Œ ¡§∫∏
+------------------------------------------------------------
+
 CREATE TABLE INSTALLMENTS (
     TX_ID          NUMBER        NOT NULL,
     TOTAL_MONTHS   NUMBER        NOT NULL,
     CURRENT_MONTH  NUMBER        NOT NULL,
-    CONSTRAINT PK_INST PRIMARY KEY (TX_ID),
-    CONSTRAINT FK_INST_TX FOREIGN KEY (TX_ID)
+    CONSTRAINT PK_INSTALLMENTS PRIMARY KEY (TX_ID),
+    CONSTRAINT FK_INSTALL_TX FOREIGN KEY (TX_ID)
         REFERENCES TRANSACTIONS(TX_ID) ON DELETE CASCADE
 );
 
 ------------------------------------------------------------
--- 4) Ï¥àÍ∏∞ Îç∞Ïù¥ÌÑ∞ INSERT
+-- 3) √ ±‚ µ•¿Ã≈Õ INSERT
 ------------------------------------------------------------
 
-INSERT INTO TRANSACTION_METHODS VALUES (1, 'Ïã†ÌïúÏùÄÌñâ', 'BANK', 5000000, NULL);
-INSERT INTO TRANSACTION_METHODS VALUES (2, 'ÌòÑÎåÄÏπ¥Îìú', 'CARD', -450000, 25);
-INSERT INTO TRANSACTION_METHODS VALUES (3, 'ÌòÑÍ∏à', 'CASH', 30000, NULL);
+------------------------------------------------------------
+-- ¿⁄ªÍ
+------------------------------------------------------------
 
-INSERT INTO CATEGORIES VALUES (1, 'ÏãùÎπÑ', 'EXPENSE');
-INSERT INTO CATEGORIES VALUES (2, 'ÍµêÌÜµ', 'EXPENSE');
-INSERT INTO CATEGORIES VALUES (3, 'ÏáºÌïë', 'EXPENSE');
-INSERT INTO CATEGORIES VALUES (4, 'Í∏âÏó¨', 'INCOME');
+INSERT INTO ASSETS VALUES (1, 'Ω≈«—¿∫«‡', 'BANK', 5000000);
+INSERT INTO ASSETS VALUES (2, '«ˆ±›', 'CASH', 30000);
 
-INSERT INTO SUB_CATEGORIES VALUES (1, 1, 'Ïô∏Ïãù');
-INSERT INTO SUB_CATEGORIES VALUES (2, 1, 'Ïπ¥Ìéò/Î≤†Ïù¥Ïª§Î¶¨');
-INSERT INTO SUB_CATEGORIES VALUES (3, 1, 'Î∞∞Îã¨ÏùåÏãù');
-INSERT INTO SUB_CATEGORIES VALUES (4, 2, 'Î≤ÑÏä§');
-INSERT INTO SUB_CATEGORIES VALUES (5, 2, 'ÏßÄÌïòÏ≤†');
-INSERT INTO SUB_CATEGORIES VALUES (6, 3, 'ÏùòÎ•ò');
-INSERT INTO SUB_CATEGORIES VALUES (7, 3, 'Ïû°Ìôî');
-INSERT INTO SUB_CATEGORIES VALUES (8, 4, 'Ï†ïÍ∏∞Í∏âÏó¨');
-INSERT INTO SUB_CATEGORIES VALUES (9, 4, 'ÏÉÅÏó¨Í∏à');
+------------------------------------------------------------
+-- ∞≈∑°ºˆ¥‹
+------------------------------------------------------------
+
+INSERT INTO PAY_METHODS VALUES (1, '«ˆ¥Îƒ´µÂ', 'CREDIT', NULL, 25);
+INSERT INTO PAY_METHODS VALUES (2, 'Ω≈«— √º≈©ƒ´µÂ', 'CHECK', 1, NULL);
+INSERT INTO PAY_METHODS VALUES (3, '«ˆ±›', 'CASH', 2, NULL);
+INSERT INTO PAY_METHODS VALUES (4, '∞Ë¡¬¿Ã√º', 'TRANSFER', 1, NULL);
+
+------------------------------------------------------------
+-- ƒ´≈◊∞Ì∏Æ
+------------------------------------------------------------
+
+INSERT INTO CATEGORIES VALUES (1, 'Ωƒ∫Ò', 'EXPENSE');
+INSERT INTO CATEGORIES VALUES (2, '±≥≈Î', 'EXPENSE');
+INSERT INTO CATEGORIES VALUES (3, 'ºÓ«Œ', 'EXPENSE');
+INSERT INTO CATEGORIES VALUES (4, '±ﬁø©', 'INCOME');
+
+------------------------------------------------------------
+-- º≠∫Íƒ´≈◊∞Ì∏Æ
+------------------------------------------------------------
+
+INSERT INTO SUB_CATEGORIES VALUES (1, 1, 'ø‹Ωƒ');
+INSERT INTO SUB_CATEGORIES VALUES (2, 1, 'ƒ´∆‰/∫£¿Ãƒø∏Æ');
+INSERT INTO SUB_CATEGORIES VALUES (3, 1, 'πË¥ﬁ¿ΩΩƒ');
+INSERT INTO SUB_CATEGORIES VALUES (4, 2, 'πˆΩ∫');
+INSERT INTO SUB_CATEGORIES VALUES (5, 2, '¡ˆ«œ√∂');
+INSERT INTO SUB_CATEGORIES VALUES (6, 3, '¿«∑˘');
+INSERT INTO SUB_CATEGORIES VALUES (7, 3, '¿‚»≠');
+INSERT INTO SUB_CATEGORIES VALUES (8, 4, '¡§±‚±ﬁø©');
+INSERT INTO SUB_CATEGORIES VALUES (9, 4, 'ªÛø©±›');
+
+------------------------------------------------------------
+-- øπªÍ
+------------------------------------------------------------
 
 INSERT INTO BUDGETS VALUES (SEQ_BUDGETS.NEXTVAL, 1, '202511', 500000);
 INSERT INTO BUDGETS VALUES (SEQ_BUDGETS.NEXTVAL, 2, '202511', 150000);
 INSERT INTO BUDGETS VALUES (SEQ_BUDGETS.NEXTVAL, 3, '202511', 1000000);
 
+------------------------------------------------------------
+-- ¡§±‚ ¡ˆ√‚
+------------------------------------------------------------
+
 INSERT INTO FIXED_EXPENSES VALUES (
     SEQ_FIXED_EXP.NEXTVAL, 
-    7, 2, 
-    'ÎÑ∑ÌîåÎ¶≠Ïä§', 
-    17000, 
-    'MONTHLY', 
+    7, 
     1, 
-    SYSDATE, 
+    '≥›«√∏ØΩ∫',
+    17000,
+    'MONTHLY',
+    1,
+    SYSDATE,
     NULL
 );
 
 ------------------------------------------------------------
--- ‚ö† Í±∞ÎûòÎÇ¥Ïó≠ INSERT ÏàòÏ†ïÎê® (Ïª¨ÎüºÎ™Ö Î™ÖÏãú)
+-- ∞≈∑°≥ªø™
 ------------------------------------------------------------
 
-INSERT INTO TRANSACTIONS (
-    TX_ID, TM_ID, SUB_ID, FIXED_EXP_ID, AMOUNT, TX_DATE, MEMO
-) VALUES (
-    SEQ_TX.NEXTVAL, 1, 8, NULL,
+-- 11ø˘ ±ﬁø© (∞Ë¡¬¿‘±›)
+INSERT INTO TRANSACTIONS VALUES (
+    SEQ_TX.NEXTVAL, 
+    4, -- ∞Ë¡¬¿Ã√º
+    1, -- Ω≈«—¿∫«‡
+    8,
+    NULL,
     3000000,
     TO_DATE('2025-11-10 09:00','YYYY-MM-DD HH24:MI'),
-    '11Ïõî Í∏âÏó¨'
+    '11ø˘ ±ﬁø©',
+    SYSDATE
 );
 
-INSERT INTO TRANSACTIONS (
-    TX_ID, TM_ID, SUB_ID, FIXED_EXP_ID, AMOUNT, TX_DATE, MEMO
-) VALUES (
-    SEQ_TX.NEXTVAL, 2, 1, NULL,
+-- ¡°Ω… (Ω≈«— √º≈©ƒ´µÂ)
+INSERT INTO TRANSACTIONS VALUES (
+    SEQ_TX.NEXTVAL,
+    2,
+    1,
+    1,
+    NULL,
     9000,
     TO_DATE('2025-11-11 12:30','YYYY-MM-DD HH24:MI'),
-    'Ï†êÏã¨'
+    '¡°Ω…',
+    SYSDATE
 );
 
-INSERT INTO TRANSACTIONS (
-    TX_ID, TM_ID, SUB_ID, FIXED_EXP_ID, AMOUNT, TX_DATE, MEMO
-) VALUES (
-    SEQ_TX.NEXTVAL, 2, 4, NULL,
+-- πˆΩ∫ √Ê¿¸ («ˆ±›)
+INSERT INTO TRANSACTIONS VALUES (
+    SEQ_TX.NEXTVAL,
+    3,
+    2,
+    4,
+    NULL,
     15000,
     TO_DATE('2025-11-12 23:40','YYYY-MM-DD HH24:MI'),
-    'Î≤ÑÏä§ Ï∂©Ï†Ñ'
+    'πˆΩ∫ √Ê¿¸',
+    SYSDATE
 );
 
-INSERT INTO TRANSACTIONS (
-    TX_ID, TM_ID, SUB_ID, FIXED_EXP_ID, AMOUNT, TX_DATE, MEMO
-) VALUES (
-    SEQ_TX.NEXTVAL, 3, 3, NULL,
+-- πË¥ﬁ ∂Û∏È (Ω≈«— √º≈©ƒ´µÂ)
+INSERT INTO TRANSACTIONS VALUES (
+    SEQ_TX.NEXTVAL,
+    2,
+    1,
+    3,
+    NULL,
     4500,
     TO_DATE('2025-11-13 13:00','YYYY-MM-DD HH24:MI'),
-    'Î∞∞Îã¨ ÎùºÎ©¥'
+    'πË¥ﬁ ∂Û∏È',
+    SYSDATE
 );
 
-INSERT INTO TRANSACTIONS (
-    TX_ID, TM_ID, SUB_ID, FIXED_EXP_ID, AMOUNT, TX_DATE, MEMO
-) VALUES (
-    SEQ_TX.NEXTVAL, 2, 6, NULL,
+-- ¿«∑˘ ±∏∏≈ (Ω≈øÎƒ´µÂ)
+INSERT INTO TRANSACTIONS VALUES (
+    SEQ_TX.NEXTVAL,
+    1,
+    NULL,
+    6,
+    NULL,
     1200000,
     TO_DATE('2025-11-15 15:00','YYYY-MM-DD HH24:MI'),
-    'ÏùòÎ•ò Íµ¨Îß§'
+    '¿«∑˘ ±∏∏≈',
+    SYSDATE
 );
 
--- Ìï†Î∂Ä Ï†ïÎ≥¥
 INSERT INTO INSTALLMENTS VALUES (SEQ_TX.CURRVAL, 3, 1);
 
--- ÎÑ∑ÌîåÎ¶≠Ïä§ ÏûêÎèôÍ≤∞Ï†ú
-INSERT INTO TRANSACTIONS (
-    TX_ID, TM_ID, SUB_ID, FIXED_EXP_ID, AMOUNT, TX_DATE, MEMO
-) VALUES (
-    SEQ_TX.NEXTVAL, 2, 7, 1,
+-- ≥›«√∏ØΩ∫ ¿⁄µø∞·¡¶
+INSERT INTO TRANSACTIONS VALUES (
+    SEQ_TX.NEXTVAL,
+    1,
+    NULL,
+    7,
+    1,
     17000,
     TO_DATE('2025-11-01 10:00','YYYY-MM-DD HH24:MI'),
-    'ÎÑ∑ÌîåÎ¶≠Ïä§ ÏûêÎèôÍ≤∞Ï†ú'
+    '≥›«√∏ØΩ∫ ¿⁄µø∞·¡¶',
+    SYSDATE
 );
 
--- 12/01 Ï†êÏã¨ ÏãùÎπÑ (Ïô∏Ïãù - SUB_ID = 1)
-INSERT INTO TRANSACTIONS (
-    TX_ID, TM_ID, SUB_ID, FIXED_EXP_ID, AMOUNT, TX_DATE, MEMO
-) VALUES (
-    SEQ_TX.NEXTVAL, 2, 1, NULL,
+-- 12ø˘ ¡°Ω…
+INSERT INTO TRANSACTIONS VALUES (
+    SEQ_TX.NEXTVAL,
+    2,
+    1,
+    1,
+    NULL,
     8500,
     TO_DATE('2025-12-01 12:20','YYYY-MM-DD HH24:MI'),
-    'Ï†êÏã¨ Ïô∏Ïãù'
+    '¡°Ω… ø‹Ωƒ',
+    SYSDATE
 );
 
--- 12/02 Ïª§Ìîº (Ïπ¥Ìéò/Î≤†Ïù¥Ïª§Î¶¨ - SUB_ID = 2)
-INSERT INTO TRANSACTIONS (
-    TX_ID, TM_ID, SUB_ID, FIXED_EXP_ID, AMOUNT, TX_DATE, MEMO
-) VALUES (
-    SEQ_TX.NEXTVAL, 3, 2, NULL,
+-- ƒø««
+INSERT INTO TRANSACTIONS VALUES (
+    SEQ_TX.NEXTVAL,
+    3,
+    2,
+    2,
+    NULL,
     4800,
     TO_DATE('2025-12-02 09:10','YYYY-MM-DD HH24:MI'),
-    'Ï∂úÍ∑ºÍ∏∏ ÏïÑÎ©îÎ¶¨Ïπ¥ÎÖ∏'
+    '√‚±Ÿ ƒø««',
+    SYSDATE
 );
 
--- 12/03 Î≤ÑÏä§ (SUB_ID = 4)
-INSERT INTO TRANSACTIONS (
-    TX_ID, TM_ID, SUB_ID, FIXED_EXP_ID, AMOUNT, TX_DATE, MEMO
-) VALUES (
-    SEQ_TX.NEXTVAL, 3, 4, NULL,
+-- πˆΩ∫
+INSERT INTO TRANSACTIONS VALUES (
+    SEQ_TX.NEXTVAL,
+    3,
+    2,
+    4,
+    NULL,
     1250,
     TO_DATE('2025-12-03 08:45','YYYY-MM-DD HH24:MI'),
-    'Ï∂úÍ∑º Î≤ÑÏä§'
+    'πˆΩ∫',
+    SYSDATE
 );
 
--- 12/04 Î∞∞Îã¨ ÏùåÏãù (SUB_ID = 3)
-INSERT INTO TRANSACTIONS (
-    TX_ID, TM_ID, SUB_ID, FIXED_EXP_ID, AMOUNT, TX_DATE, MEMO
-) VALUES (
-    SEQ_TX.NEXTVAL, 2, 3, NULL,
+-- πË¥ﬁ
+INSERT INTO TRANSACTIONS VALUES (
+    SEQ_TX.NEXTVAL,
+    2,
+    1,
+    3,
+    NULL,
     18500,
     TO_DATE('2025-12-04 18:40','YYYY-MM-DD HH24:MI'),
-    'Ï†ÄÎÖÅ Î∞∞Îã¨'
+    '¿˙≥· πË¥ﬁ',
+    SYSDATE
 );
 
--- 12/05 12Ïõî Í∏âÏó¨ (Ï†ïÍ∏∞Í∏âÏó¨ SUB_ID = 8)
-INSERT INTO TRANSACTIONS (
-    TX_ID, TM_ID, SUB_ID, FIXED_EXP_ID, AMOUNT, TX_DATE, MEMO
-) VALUES (
-    SEQ_TX.NEXTVAL, 1, 8, NULL,
+-- ø˘±ﬁ
+INSERT INTO TRANSACTIONS VALUES (
+    SEQ_TX.NEXTVAL,
+    4,
+    1,
+    8,
+    NULL,
     3000000,
     TO_DATE('2025-12-05 08:00','YYYY-MM-DD HH24:MI'),
-    '12Ïõî Í∏âÏó¨'
+    '12ø˘ ±ﬁø©',
+    SYSDATE
 );
-
 
 COMMIT;

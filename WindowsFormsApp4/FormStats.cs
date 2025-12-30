@@ -1,144 +1,179 @@
 ﻿using System;
-using System.Data;
 using System.Drawing;
 using System.Windows.Forms;
-using System.Windows.Forms.DataVisualization.Charting; // 차트 필수
+using System.Windows.Forms.DataVisualization.Charting;
 using Oracle.DataAccess.Client;
 
 namespace WindowsFormsApp4
 {
     public partial class FormStats : Form
     {
-        private string connectionString = "User Id=BANK_MANAGER; Password=1234; Data Source=localhost:1521/XE;";
+        private string connectionString =
+            "User Id=BANK_MANAGER; Password=1234; Data Source=localhost:1521/XE;";
 
         public FormStats()
         {
             InitializeComponent();
 
-            // 1. 날짜 포맷 (년-월)
-            cmbMonth.Format = DateTimePickerFormat.Custom;
-            cmbMonth.CustomFormat = "yyyy-MM";
-            cmbMonth.ShowUpDown = true;
+            // 기본 조회 기간: 이번 달
+            dtpStart.Value = new DateTime(DateTime.Now.Year, DateTime.Now.Month, 1);
+            dtpEnd.Value = DateTime.Now;
 
-            // 2. 시작 시 이번 달 조회
-            cmbMonth.Value = DateTime.Now;
-            LoadBudgetVsExpenseChart();
-        }
-
-        private void btnLoad_Click(object sender, EventArgs e)
-        {
-            LoadBudgetVsExpenseChart();
+            LoadIncomeExpenseLine();
+            LoadTotalBalanceLine();
         }
 
         // =========================================================
-        // 예산 vs 지출 비교 차트 그리기
+        // 조회 버튼
         // =========================================================
-        private void LoadBudgetVsExpenseChart()
+        private void btnSearch_Click(object sender, EventArgs e)
         {
-            // 1. 차트 초기화
-            chartStats.Series.Clear();
-            chartStats.Titles.Clear();
-            chartStats.ChartAreas[0].AxisX.Interval = 1; // 모든 카테고리 이름 표시
+            LoadIncomeExpenseLine();
+            LoadTotalBalanceLine();
+        }
 
-            // 2. 제목 설정
-            string targetMonth = cmbMonth.Value.ToString("yyyy-MM");
-            Title title = chartStats.Titles.Add($"{targetMonth} 예산 대비 지출 현황");
-            title.Font = new Font("맑은 고딕", 16, FontStyle.Bold);
+        // =========================================================
+        // 1️⃣ 날짜별 수입 / 지출 꺾은선 그래프
+        // =========================================================
+        private void LoadIncomeExpenseLine()
+        {
+            chartIncomeExpense.Series.Clear();
+            chartIncomeExpense.Titles.Clear();
 
-            // 3. 시리즈 2개 생성 (예산 막대, 지출 막대)
-            Series seriesBudget = new Series("예산(목표)");
-            seriesBudget.ChartType = SeriesChartType.Bar; // 가로 막대
-            seriesBudget.Color = Color.LightGray; // 예산은 은은하게
-            seriesBudget.IsValueShownAsLabel = true;
+            Series sIncome = new Series("수입")
+            {
+                ChartType = SeriesChartType.Line,
+                Color = Color.MediumSeaGreen,
+                BorderWidth = 3
+            };
 
-            Series seriesExpense = new Series("지출(실제)");
-            seriesExpense.ChartType = SeriesChartType.Bar;
-            seriesExpense.Color = Color.Salmon; // 지출은 눈에 띄게
-            seriesExpense.IsValueShownAsLabel = true;
+            Series sExpense = new Series("지출")
+            {
+                ChartType = SeriesChartType.Line,
+                Color = Color.Salmon,
+                BorderWidth = 3
+            };
 
-            // 4. DB 조회 (FULL OUTER JOIN 사용)
+            chartIncomeExpense.Series.Add(sIncome);
+            chartIncomeExpense.Series.Add(sExpense);
+
+            string sql = @"
+                SELECT
+                    TO_CHAR(TX_DATE, 'YYYY-MM-DD') AS TX_DAY,
+                    SUM(CASE WHEN C.TYPE = 'INCOME'  THEN T.AMOUNT ELSE 0 END) AS INCOME_AMT,
+                    SUM(CASE WHEN C.TYPE = 'EXPENSE' THEN T.AMOUNT ELSE 0 END) AS EXPENSE_AMT
+                FROM TRANSACTIONS T
+                JOIN SUB_CATEGORIES S ON T.SUB_ID = S.SUB_ID
+                JOIN CATEGORIES C ON S.CATEGORY_ID = C.CATEGORY_ID
+                WHERE TX_DATE BETWEEN :START_DATE AND :END_DATE
+                GROUP BY TO_CHAR(TX_DATE, 'YYYY-MM-DD')
+                ORDER BY TX_DAY
+            ";
+
             using (OracleConnection conn = new OracleConnection(connectionString))
             {
-                try
+                conn.Open();
+
+                OracleCommand cmd = new OracleCommand(sql, conn);
+                cmd.BindByName = true;
+                cmd.Parameters.Add(":START_DATE", dtpStart.Value.Date);
+                cmd.Parameters.Add(":END_DATE", dtpEnd.Value.Date.AddDays(1).AddSeconds(-1));
+
+                OracleDataReader rd = cmd.ExecuteReader();
+
+                while (rd.Read())
                 {
-                    conn.Open();
+                    string day = rd["TX_DAY"].ToString();
+                    double income = Convert.ToDouble(rd["INCOME_AMT"]);
+                    double expense = Convert.ToDouble(rd["EXPENSE_AMT"]);
 
-                    // ★ SQL 설명:
-                    // 1) B: 해당 월의 카테고리별 예산 합계
-                    // 2) T: 해당 월의 카테고리별 지출 합계
-                    // 3) FULL OUTER JOIN: 예산만 있거나 지출만 있는 경우도 모두 표시
-                    string sql = @"
-                        SELECT 
-                            NVL(B.NAME, T.NAME) AS 카테고리,
-                            NVL(B.BUDGET_AMT, 0) AS 예산,
-                            NVL(T.EXPENSE_AMT, 0) AS 지출
-                        FROM 
-                            ( -- 1. 예산 서브쿼리
-                                SELECT C.CATEGORY_ID, C.NAME, SUM(B.AMOUNT) AS BUDGET_AMT
-                                FROM BUDGETS B
-                                JOIN CATEGORIES C ON B.CATEGORY_ID = C.CATEGORY_ID
-                                WHERE B.YYYYMM = :Ym
-                                GROUP BY C.CATEGORY_ID, C.NAME
-                            ) B
-                            FULL OUTER JOIN 
-                            ( -- 2. 지출 서브쿼리
-                                SELECT C.CATEGORY_ID, C.NAME, SUM(TR.AMOUNT) AS EXPENSE_AMT
-                                FROM TRANSACTIONS TR
-                                JOIN SUB_CATEGORIES S ON TR.SUB_ID = S.SUB_ID
-                                JOIN CATEGORIES C ON S.CATEGORY_ID = C.CATEGORY_ID
-                                WHERE TO_CHAR(TR.TX_DATE, 'YYYYMM') = :Ym
-                                  AND C.TYPE = 'EXPENSE'
-                                GROUP BY C.CATEGORY_ID, C.NAME
-                            ) T
-                            ON B.CATEGORY_ID = T.CATEGORY_ID
-                        ORDER BY 지출 DESC
-                    ";
-
-                    OracleCommand cmd = new OracleCommand(sql, conn);
-                    // 파라미터 :Ym (예: '202511') -> 위아래 두 군데 다 들어감
-                    string strYm = cmbMonth.Value.ToString("yyyyMM");
-                    cmd.Parameters.Add(":Ym", strYm);
-
-                    // 주의: 오라클에서 파라미터를 여러 번 쓸 때는 순서대로 넣어줘야 하거나,
-                    // BindByName을 true로 해야 함. 안전하게 BindByName 사용 추천.
-                    cmd.BindByName = true;
-
-                    OracleDataReader rd = cmd.ExecuteReader();
-
-                    bool hasData = false;
-                    while (rd.Read())
-                    {
-                        hasData = true;
-                        string catName = rd["카테고리"].ToString();
-                        long budget = Convert.ToInt64(rd["예산"]);
-                        long expense = Convert.ToInt64(rd["지출"]);
-
-                        // 차트에 데이터 추가
-                        seriesBudget.Points.AddXY(catName, budget);
-
-                        int idx = seriesExpense.Points.AddXY(catName, expense);
-
-                        // ★ 시각적 효과: 예산 초과 시 빨간색 경고!
-                        if (expense > budget && budget > 0)
-                        {
-                            seriesExpense.Points[idx].Color = Color.Red;
-                            seriesExpense.Points[idx].Label = $"{expense:N0} (초과!)";
-                        }
-                    }
-
-                    // 차트에 시리즈 등록
-                    chartStats.Series.Add(seriesBudget);
-                    chartStats.Series.Add(seriesExpense);
-
-                    if (!hasData)
-                    {
-                        MessageBox.Show("해당 월에 데이터가 없습니다.");
-                    }
+                    sIncome.Points.AddXY(day, income);
+                    sExpense.Points.AddXY(day, expense);
                 }
-                catch (Exception ex)
+            }
+
+            chartIncomeExpense.Titles.Add("📈 기간별 수입 · 지출 추이");
+        }
+
+        // =========================================================
+        // 2️⃣ 날짜별 총 잔액 변화 꺾은선 그래프
+        // =========================================================
+        private void LoadTotalBalanceLine()
+        {
+            chartBalance.Series.Clear();
+            chartBalance.Titles.Clear();
+
+            Series sBalance = new Series("총 잔액")
+            {
+                ChartType = SeriesChartType.Line,
+                Color = Color.SteelBlue,
+                BorderWidth = 3
+            };
+
+            chartBalance.Series.Add(sBalance);
+
+            double baseBalance = GetInitialTotalBalance();
+
+            string sql = @"
+                SELECT
+                    TX_DAY,
+                    SUM(DELTA) OVER (ORDER BY TX_DAY)
+                        + :BASE_BALANCE AS TOTAL_BALANCE
+                FROM (
+                    SELECT
+                        TO_CHAR(TX_DATE, 'YYYY-MM-DD') AS TX_DAY,
+                        SUM(
+                            CASE
+                                WHEN C.TYPE = 'INCOME'  THEN T.AMOUNT
+                                WHEN C.TYPE = 'EXPENSE' THEN -T.AMOUNT
+                            END
+                        ) AS DELTA
+                    FROM TRANSACTIONS T
+                    JOIN SUB_CATEGORIES S ON T.SUB_ID = S.SUB_ID
+                    JOIN CATEGORIES C ON S.CATEGORY_ID = C.CATEGORY_ID
+                    WHERE TX_DATE BETWEEN :START_DATE AND :END_DATE
+                    GROUP BY TO_CHAR(TX_DATE, 'YYYY-MM-DD')
+                )
+                ORDER BY TX_DAY
+            ";
+
+            using (OracleConnection conn = new OracleConnection(connectionString))
+            {
+                conn.Open();
+
+                OracleCommand cmd = new OracleCommand(sql, conn);
+                cmd.BindByName = true;
+                cmd.Parameters.Add(":BASE_BALANCE", baseBalance);
+                cmd.Parameters.Add(":START_DATE", dtpStart.Value.Date);
+                cmd.Parameters.Add(":END_DATE", dtpEnd.Value.Date.AddDays(1).AddSeconds(-1));
+
+                OracleDataReader rd = cmd.ExecuteReader();
+
+                while (rd.Read())
                 {
-                    MessageBox.Show("통계 로딩 오류: " + ex.Message);
+                    string day = rd["TX_DAY"].ToString();
+                    double balance = Convert.ToDouble(rd["TOTAL_BALANCE"]);
+
+                    sBalance.Points.AddXY(day, balance);
                 }
+            }
+
+            chartBalance.Titles.Add("💰 기간별 총 자산 잔액 변화");
+        }
+
+        // =========================================================
+        // 초기 총 자산 잔액
+        // =========================================================
+        private double GetInitialTotalBalance()
+        {
+            using (OracleConnection conn = new OracleConnection(connectionString))
+            {
+                conn.Open();
+
+                OracleCommand cmd =
+                    new OracleCommand("SELECT NVL(SUM(BALANCE),0) FROM ASSETS", conn);
+
+                return Convert.ToDouble(cmd.ExecuteScalar());
             }
         }
     }

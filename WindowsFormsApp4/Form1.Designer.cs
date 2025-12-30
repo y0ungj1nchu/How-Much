@@ -16,6 +16,7 @@
         private void InitializeComponent()
         {
             this.panelNav = new System.Windows.Forms.Panel();
+            this.btnAccount = new System.Windows.Forms.Button();
             this.btnStats = new System.Windows.Forms.Button();
             this.btnBudget = new System.Windows.Forms.Button();
             this.btntransaction = new System.Windows.Forms.Button();
@@ -28,6 +29,7 @@
             // 
             this.panelNav.BackColor = System.Drawing.Color.White;
             this.panelNav.BorderStyle = System.Windows.Forms.BorderStyle.FixedSingle;
+            this.panelNav.Controls.Add(this.btnAccount);
             this.panelNav.Controls.Add(this.btnStats);
             this.panelNav.Controls.Add(this.btnBudget);
             this.panelNav.Controls.Add(this.btntransaction);
@@ -36,8 +38,25 @@
             this.panelNav.Location = new System.Drawing.Point(0, 0);
             this.panelNav.Margin = new System.Windows.Forms.Padding(4);
             this.panelNav.Name = "panelNav";
-            this.panelNav.Size = new System.Drawing.Size(232, 720);
+            this.panelNav.Size = new System.Drawing.Size(232, 1144);
             this.panelNav.TabIndex = 0;
+            // 
+            // btnAccount
+            // 
+            this.btnAccount.FlatAppearance.BorderSize = 0;
+            this.btnAccount.FlatAppearance.MouseOverBackColor = System.Drawing.Color.Gainsboro;
+            this.btnAccount.FlatStyle = System.Windows.Forms.FlatStyle.Flat;
+            this.btnAccount.Font = new System.Drawing.Font("맑은 고딕", 11F);
+            this.btnAccount.Location = new System.Drawing.Point(-1, 264);
+            this.btnAccount.Margin = new System.Windows.Forms.Padding(4);
+            this.btnAccount.Name = "btnAccount";
+            this.btnAccount.Padding = new System.Windows.Forms.Padding(22, 0, 0, 0);
+            this.btnAccount.Size = new System.Drawing.Size(285, 66);
+            this.btnAccount.TabIndex = 5;
+            this.btnAccount.Text = "🏦   자산관리";
+            this.btnAccount.TextAlign = System.Drawing.ContentAlignment.MiddleLeft;
+            this.btnAccount.UseVisualStyleBackColor = true;
+            this.btnAccount.Click += new System.EventHandler(this.btnAccount_Click);
             // 
             // btnStats
             // 
@@ -45,13 +64,13 @@
             this.btnStats.FlatAppearance.MouseOverBackColor = System.Drawing.Color.Gainsboro;
             this.btnStats.FlatStyle = System.Windows.Forms.FlatStyle.Flat;
             this.btnStats.Font = new System.Drawing.Font("맑은 고딕", 11F);
-            this.btnStats.Location = new System.Drawing.Point(1, 266);
+            this.btnStats.Location = new System.Drawing.Point(-1, 338);
             this.btnStats.Margin = new System.Windows.Forms.Padding(4);
             this.btnStats.Name = "btnStats";
             this.btnStats.Padding = new System.Windows.Forms.Padding(22, 0, 0, 0);
             this.btnStats.Size = new System.Drawing.Size(285, 66);
             this.btnStats.TabIndex = 4;
-            this.btnStats.Text = "📊   결산내역";
+            this.btnStats.Text = "📊   자산분석";
             this.btnStats.TextAlign = System.Drawing.ContentAlignment.MiddleLeft;
             this.btnStats.UseVisualStyleBackColor = true;
             this.btnStats.Click += new System.EventHandler(this.btnStats_Click);
@@ -108,14 +127,14 @@
             this.panelMain.Location = new System.Drawing.Point(232, 0);
             this.panelMain.Margin = new System.Windows.Forms.Padding(4);
             this.panelMain.Name = "panelMain";
-            this.panelMain.Size = new System.Drawing.Size(1268, 720);
+            this.panelMain.Size = new System.Drawing.Size(1396, 1144);
             this.panelMain.TabIndex = 2;
             // 
             // Form1
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(144F, 144F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Dpi;
-            this.ClientSize = new System.Drawing.Size(1500, 720);
+            this.ClientSize = new System.Drawing.Size(1628, 1144);
             this.Controls.Add(this.panelMain);
             this.Controls.Add(this.panelNav);
             this.FormBorderStyle = System.Windows.Forms.FormBorderStyle.FixedSingle;
@@ -135,5 +154,6 @@
         private System.Windows.Forms.Button btntransaction;
         private System.Windows.Forms.Label lblLogo;
         private System.Windows.Forms.Panel panelMain;
+        private System.Windows.Forms.Button btnAccount;
     }
 }

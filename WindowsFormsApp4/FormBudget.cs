@@ -1,269 +1,384 @@
 ﻿using System;
 using System.Data;
 using System.Windows.Forms;
-using Oracle.DataAccess.Client; // Oracle 라이브러리
+using Oracle.DataAccess.Client;
+using System.Windows.Forms.DataVisualization.Charting;
 
 namespace WindowsFormsApp4
 {
     public partial class FormBudget : Form
     {
-        // ▼ 본인 DB 정보로 수정 필수
-        private string connectionString = "User Id=BANK_MANAGER; Password=1234; Data Source=localhost:1521/XE;";
+        private string connectionString =
+            "User Id=BANK_MANAGER; Password=1234; Data Source=localhost:1521/XE;";
+
+        // 초기화 완료 여부
+        private bool isInitialized = false;
 
         public FormBudget()
         {
             InitializeComponent();
-
-            // 2. 콤보박스(카테고리) 채우기
-            LoadCategoryData();
-
-            // 3. 시작 시 이번 달 예산 조회
-            cmbMonth.Value = DateTime.Now; // 날짜 선택기 오늘로 설정
-            LoadBudgetData();
+            this.Load += FormBudget_Load;
         }
 
+        // =========================================================
+        // Form Load
+        // =========================================================
+        private void FormBudget_Load(object sender, EventArgs e)
+        {
+            try
+            {
+                LoadCategoryData();
 
+                cmbMonth.Value = DateTime.Now;
+
+                InitializeGrid(dgvThisMonth);
+                InitializeChart();
+
+                LoadThisMonthBudget();
+                LoadBudgetExpenseChart();
+
+                isInitialized = true;
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show("Form load error: " + ex.Message);
+            }
+        }
+
+        // =========================================================
+        // DataGridView 초기화
+        // =========================================================
+        private void InitializeGrid(DataGridView dgv)
+        {
+            dgv.AllowUserToAddRows = false;
+            dgv.ReadOnly = true;
+            dgv.RowHeadersVisible = false;
+            dgv.SelectionMode = DataGridViewSelectionMode.FullRowSelect;
+            dgv.MultiSelect = false;
+            dgv.Columns.Clear();
+
+            dgv.Columns.Add("BUDGET_ID", "ID");
+            dgv.Columns["BUDGET_ID"].Visible = false;
+
+            dgv.Columns.Add("YYYYMM", "월");
+            dgv.Columns.Add("CATEGORY_NAME", "카테고리");
+            dgv.Columns.Add("AMOUNT", "금액");
+
+            dgv.Columns["YYYYMM"].Width = 80;
+            dgv.Columns["CATEGORY_NAME"].Width = 200;
+            dgv.Columns["AMOUNT"].Width = 120;
+            dgv.Columns["AMOUNT"].DefaultCellStyle.Alignment =
+                DataGridViewContentAlignment.MiddleRight;
+
+            dgv.CellClick -= Dgv_CellClick;
+            dgv.CellClick += Dgv_CellClick;
+        }
+
+        // =========================================================
+        // 카테고리 로드
+        // =========================================================
         private void LoadCategoryData()
         {
             using (OracleConnection conn = new OracleConnection(connectionString))
             {
-                try
-                {
-                    conn.Open();
-                    // '지출(EXPENSE)' 카테고리만 예산 설정 가능
-                    string sql = "SELECT CATEGORY_ID, NAME FROM CATEGORIES WHERE TYPE = 'EXPENSE' ORDER BY CATEGORY_ID";
+                conn.Open();
 
-                    OracleDataAdapter da = new OracleDataAdapter(sql, conn);
-                    DataTable dt = new DataTable();
-                    da.Fill(dt);
+                string sql = @"
+                    SELECT CATEGORY_ID, NAME
+                    FROM CATEGORIES
+                    WHERE TYPE = 'EXPENSE'
+                    ORDER BY CATEGORY_ID";
 
-                    cmbMainCategory.DataSource = dt;
-                    cmbMainCategory.DisplayMember = "NAME";
-                    cmbMainCategory.ValueMember = "CATEGORY_ID";
+                OracleDataAdapter da = new OracleDataAdapter(sql, conn);
+                DataTable dt = new DataTable();
+                da.Fill(dt);
 
-                    cmbMainCategory.SelectedIndex = -1; // 초기 선택 없음
-                }
-                catch (Exception ex) { MessageBox.Show("카테고리 로딩 실패: " + ex.Message); }
+                cmbMainCategory.DataSource = dt;
+                cmbMainCategory.DisplayMember = "NAME";
+                cmbMainCategory.ValueMember = "CATEGORY_ID";
+                cmbMainCategory.SelectedIndex = -1;
             }
         }
 
         // =========================================================
-        // 2. 조회 (READ) -> 리스트뷰에 뿌리기
+        // 이번 달 예산 로드
         // =========================================================
-        private void LoadBudgetData()
+        private void LoadThisMonthBudget()
         {
-            listView1.Items.Clear(); // 기존 목록 초기화
+            dgvThisMonth.Rows.Clear();
 
             using (OracleConnection conn = new OracleConnection(connectionString))
             {
-                try
+                conn.Open();
+
+                string ym = cmbMonth.Value.ToString("yyyyMM");
+
+                string sql = @"
+                    SELECT 
+                        B.BUDGET_ID,
+                        B.YYYYMM,
+                        C.NAME AS CATEGORY_NAME,
+                        B.AMOUNT
+                    FROM BUDGETS B
+                    JOIN CATEGORIES C ON B.CATEGORY_ID = C.CATEGORY_ID
+                    WHERE B.YYYYMM = :YM
+                    ORDER BY C.NAME";
+
+                OracleCommand cmd = new OracleCommand(sql, conn);
+                cmd.Parameters.Add(":YM", ym);
+
+                OracleDataReader rd = cmd.ExecuteReader();
+
+                while (rd.Read())
                 {
-                    conn.Open();
-
-                    // 선택된 년월(YYYYMM) 문자열 만들기
-                    string targetMonth = cmbMonth.Value.ToString("yyyyMM");
-
-                    string sql = @"
-                        SELECT 
-                            B.BUDGET_ID, 
-                            B.YYYYMM, 
-                            C.NAME AS CATEGORY_NAME, 
-                            C.CATEGORY_ID,
-                            B.AMOUNT,
-                            ' ' AS MEMO
-                        FROM BUDGETS B
-                        JOIN CATEGORIES C ON B.CATEGORY_ID = C.CATEGORY_ID
-                        WHERE B.YYYYMM = :TargetMonth
-                        ORDER BY C.NAME ASC";
-
-                    OracleCommand cmd = new OracleCommand(sql, conn);
-                    cmd.Parameters.Add(":TargetMonth", targetMonth);
-
-                    OracleDataReader rd = cmd.ExecuteReader();
-
-                    while (rd.Read())
-                    {
-                        // 1번째 컬럼: 년월 (보여주기용 포맷팅 yyyy-MM)
-                        string yyyymm = rd["YYYYMM"].ToString();
-                        string displayMonth = yyyymm.Substring(0, 4) + "-" + yyyymm.Substring(4, 2);
-
-                        ListViewItem item = new ListViewItem(displayMonth);
-
-                        // 서브 아이템 추가 (카테고리, 금액, 메모)
-                        item.SubItems.Add(rd["CATEGORY_NAME"].ToString());
-                        item.SubItems.Add(string.Format("{0:N0}", rd["AMOUNT"])); // 천단위 콤마
-                        item.SubItems.Add(rd["MEMO"].ToString());
-
-                        // ★ 핵심: 화면엔 안 보이지만 중요한 ID값들을 Tag에 숨겨둠
-                        item.Tag = Convert.ToInt32(rd["BUDGET_ID"]);
-
-                        // 리스트뷰에 추가
-                        listView1.Items.Add(item);
-                    }
+                    dgvThisMonth.Rows.Add(
+                        rd["BUDGET_ID"],
+                        FormatMonth(rd["YYYYMM"].ToString()),
+                        rd["CATEGORY_NAME"],
+                        string.Format("{0:N0}", rd["AMOUNT"])
+                    );
                 }
-                catch (Exception ex) { MessageBox.Show("조회 실패: " + ex.Message); }
             }
         }
 
-        // 날짜 선택 변경 시 자동 조회
-        private void cmbMonth_ValueChanged(object sender, EventArgs e)
+        private string FormatMonth(string yyyymm)
         {
-            LoadBudgetData();
+            if (string.IsNullOrEmpty(yyyymm) || yyyymm.Length < 6)
+                return yyyymm;
+
+            return yyyymm.Insert(4, "-");
         }
 
         // =========================================================
-        // 3. 추가 (INSERT)
+        // Chart 초기화
+        // =========================================================
+        private void InitializeChart()
+        {
+            chartBudget.Series.Clear();
+            chartBudget.ChartAreas.Clear();
+
+            ChartArea area = new ChartArea();
+            area.AxisX.Title = "날짜";
+            area.AxisY.Title = "금액";
+            area.AxisX.Interval = 1;
+
+            chartBudget.ChartAreas.Add(area);
+
+            Series budgetSeries = new Series("예산")
+            {
+                ChartType = SeriesChartType.Line,
+                BorderWidth = 3
+            };
+
+            Series expenseSeries = new Series("지출")
+            {
+                ChartType = SeriesChartType.Line,
+                BorderWidth = 3
+            };
+
+            chartBudget.Series.Add(budgetSeries);
+            chartBudget.Series.Add(expenseSeries);
+        }
+
+        // =========================================================
+        // 예산 vs 지출 그래프 로드
+        // =========================================================
+        private void LoadBudgetExpenseChart()
+        {
+            chartBudget.Series["예산"].Points.Clear();
+            chartBudget.Series["지출"].Points.Clear();
+
+            using (OracleConnection conn = new OracleConnection(connectionString))
+            {
+                conn.Open();
+
+                string ym = cmbMonth.Value.ToString("yyyyMM");
+
+                // 1️⃣ 이번 달 총 예산
+                string budgetSql = @"
+                    SELECT NVL(SUM(AMOUNT), 0)
+                    FROM BUDGETS
+                    WHERE YYYYMM = :YM";
+
+                OracleCommand budgetCmd = new OracleCommand(budgetSql, conn);
+                budgetCmd.Parameters.Add(":YM", ym);
+
+                decimal totalBudget =
+                    Convert.ToDecimal(budgetCmd.ExecuteScalar());
+
+                // 2️⃣ 날짜별 지출
+                string expenseSql = @"
+                    SELECT
+                        TO_CHAR(TX_DATE, 'DD') AS DAY,
+                        SUM(AMOUNT) AS TOTAL
+                    FROM TRANSACTIONS
+                    WHERE TO_CHAR(TX_DATE, 'YYYYMM') = :YM
+                    GROUP BY TO_CHAR(TX_DATE, 'DD')
+                    ORDER BY DAY";
+
+                OracleCommand expenseCmd = new OracleCommand(expenseSql, conn);
+                expenseCmd.Parameters.Add(":YM", ym);
+
+                OracleDataReader rd = expenseCmd.ExecuteReader();
+
+                while (rd.Read())
+                {
+                    string day = rd["DAY"].ToString();
+                    decimal expense = Convert.ToDecimal(rd["TOTAL"]);
+
+                    chartBudget.Series["예산"].Points.AddXY(day, totalBudget);
+                    chartBudget.Series["지출"].Points.AddXY(day, expense);
+                }
+            }
+        }
+
+        // =========================================================
+        // 월 변경
+        // =========================================================
+        private void cmbMonth_ValueChanged(object sender, EventArgs e)
+        {
+            if (!isInitialized) return;
+
+            LoadThisMonthBudget();
+            LoadBudgetExpenseChart();
+        }
+
+        // =========================================================
+        // Grid 클릭 → 입력창 채우기
+        // =========================================================
+        private void Dgv_CellClick(object sender, DataGridViewCellEventArgs e)
+        {
+            if (e.RowIndex < 0) return;
+
+            DataGridViewRow row = dgvThisMonth.Rows[e.RowIndex];
+
+            cmbMainCategory.Text = row.Cells["CATEGORY_NAME"].Value.ToString();
+            txtAmount.Text = row.Cells["AMOUNT"].Value.ToString().Replace(",", "");
+        }
+
+        // =========================================================
+        // 추가
         // =========================================================
         private void buttonAdd_Click(object sender, EventArgs e)
         {
-            if (cmbMainCategory.SelectedIndex == -1 || string.IsNullOrWhiteSpace(txtAmount.Text))
+            if (cmbMainCategory.SelectedIndex == -1 ||
+                string.IsNullOrWhiteSpace(txtAmount.Text))
             {
                 MessageBox.Show("카테고리와 금액을 입력하세요.");
                 return;
             }
 
-            string targetMonth = cmbMonth.Value.ToString("yyyyMM");
-
             using (OracleConnection conn = new OracleConnection(connectionString))
             {
-                try
+                conn.Open();
+
+                string ym = cmbMonth.Value.ToString("yyyyMM");
+
+                string checkSql = @"
+                    SELECT COUNT(*)
+                    FROM BUDGETS
+                    WHERE YYYYMM = :YM AND CATEGORY_ID = :CID";
+
+                OracleCommand check = new OracleCommand(checkSql, conn);
+                check.Parameters.Add(":YM", ym);
+                check.Parameters.Add(":CID", cmbMainCategory.SelectedValue);
+
+                if (Convert.ToInt32(check.ExecuteScalar()) > 0)
                 {
-                    conn.Open();
-
-                    // 중복 체크 (이미 해당 월에 해당 카테고리 예산이 있는지)
-                    string checkSql = "SELECT COUNT(*) FROM BUDGETS WHERE YYYYMM = :Ym AND CATEGORY_ID = :CatID";
-                    OracleCommand checkCmd = new OracleCommand(checkSql, conn);
-                    checkCmd.Parameters.Add(":Ym", targetMonth);
-                    checkCmd.Parameters.Add(":CatID", Convert.ToInt32(cmbMainCategory.SelectedValue));
-
-                    if (Convert.ToInt32(checkCmd.ExecuteScalar()) > 0)
-                    {
-                        MessageBox.Show("이미 등록된 카테고리입니다. 수정 기능을 이용해주세요.");
-                        return;
-                    }
-
-                    // 저장
-                    string sql = @"
-                        INSERT INTO BUDGETS (BUDGET_ID, CATEGORY_ID, YYYYMM, AMOUNT)
-                        VALUES (SEQ_BUDGETS.NEXTVAL, :CatID, :Ym, :Amt)";
-
-                    OracleCommand cmd = new OracleCommand(sql, conn);
-                    cmd.Parameters.Add(":CatID", Convert.ToInt32(cmbMainCategory.SelectedValue));
-                    cmd.Parameters.Add(":Ym", targetMonth);
-                    cmd.Parameters.Add(":Amt", int.Parse(txtAmount.Text));
-
-                    cmd.ExecuteNonQuery();
-
-                    MessageBox.Show("예산이 추가되었습니다.");
-                    LoadBudgetData();
-                    ClearInput();
+                    MessageBox.Show("이미 등록된 카테고리입니다.");
+                    return;
                 }
-                catch (Exception ex) { MessageBox.Show("추가 실패: " + ex.Message); }
+
+                string sql = @"
+                    INSERT INTO BUDGETS
+                    (BUDGET_ID, CATEGORY_ID, YYYYMM, AMOUNT)
+                    VALUES
+                    (SEQ_BUDGETS.NEXTVAL, :CID, :YM, :AMT)";
+
+                OracleCommand cmd = new OracleCommand(sql, conn);
+                cmd.Parameters.Add(":CID", cmbMainCategory.SelectedValue);
+                cmd.Parameters.Add(":YM", ym);
+                cmd.Parameters.Add(":AMT", int.Parse(txtAmount.Text));
+
+                cmd.ExecuteNonQuery();
             }
+
+            LoadThisMonthBudget();
+            LoadBudgetExpenseChart();
+            ClearInput();
         }
 
         // =========================================================
-        // 4. 수정 (UPDATE)
+        // 수정
         // =========================================================
         private void buttonUpdate_Click(object sender, EventArgs e)
         {
-            if (listView1.SelectedItems.Count == 0)
+            if (dgvThisMonth.SelectedRows.Count == 0)
             {
-                MessageBox.Show("수정할 예산을 선택하세요.");
+                MessageBox.Show("수정할 항목을 선택하세요.");
                 return;
             }
 
-            // Tag에 숨겨둔 ID 꺼내오기
-            int budgetId = Convert.ToInt32(listView1.SelectedItems[0].Tag);
-            string targetMonth = cmbMonth.Value.ToString("yyyyMM");
+            int id =
+                Convert.ToInt32(dgvThisMonth.SelectedRows[0].Cells["BUDGET_ID"].Value);
 
             using (OracleConnection conn = new OracleConnection(connectionString))
             {
-                try
-                {
-                    conn.Open();
-                    string sql = @"
-                        UPDATE BUDGETS 
-                        SET CATEGORY_ID = :CatID, 
-                            YYYYMM = :Ym, 
-                            AMOUNT = :Amt
-                        WHERE BUDGET_ID = :ID";
+                conn.Open();
 
-                    OracleCommand cmd = new OracleCommand(sql, conn);
-                    cmd.Parameters.Add(":CatID", Convert.ToInt32(cmbMainCategory.SelectedValue));
-                    cmd.Parameters.Add(":Ym", targetMonth);
-                    cmd.Parameters.Add(":Amt", int.Parse(txtAmount.Text));
-                    cmd.Parameters.Add(":ID", budgetId);
+                string sql = @"
+                    UPDATE BUDGETS
+                    SET CATEGORY_ID = :CID,
+                        AMOUNT = :AMT
+                    WHERE BUDGET_ID = :ID";
 
-                    cmd.ExecuteNonQuery();
+                OracleCommand cmd = new OracleCommand(sql, conn);
+                cmd.Parameters.Add(":CID", cmbMainCategory.SelectedValue);
+                cmd.Parameters.Add(":AMT", int.Parse(txtAmount.Text));
+                cmd.Parameters.Add(":ID", id);
 
-                    MessageBox.Show("수정되었습니다.");
-                    LoadBudgetData();
-                    ClearInput();
-                }
-                catch (Exception ex) { MessageBox.Show("수정 실패: " + ex.Message); }
+                cmd.ExecuteNonQuery();
             }
+
+            LoadThisMonthBudget();
+            LoadBudgetExpenseChart();
+            ClearInput();
         }
 
         // =========================================================
-        // 5. 삭제 (DELETE)
+        // 삭제
         // =========================================================
         private void buttonDelete_Click(object sender, EventArgs e)
         {
-            if (listView1.SelectedItems.Count == 0)
+            if (dgvThisMonth.SelectedRows.Count == 0)
             {
-                MessageBox.Show("삭제할 예산을 선택하세요.");
+                MessageBox.Show("삭제할 항목을 선택하세요.");
                 return;
             }
 
-            if (MessageBox.Show("정말 삭제하시겠습니까?", "확인", MessageBoxButtons.YesNo) == DialogResult.Yes)
+            int id =
+                Convert.ToInt32(dgvThisMonth.SelectedRows[0].Cells["BUDGET_ID"].Value);
+
+            using (OracleConnection conn = new OracleConnection(connectionString))
             {
-                int budgetId = Convert.ToInt32(listView1.SelectedItems[0].Tag);
+                conn.Open();
 
-                using (OracleConnection conn = new OracleConnection(connectionString))
-                {
-                    try
-                    {
-                        conn.Open();
-                        string sql = "DELETE FROM BUDGETS WHERE BUDGET_ID = :ID";
-                        OracleCommand cmd = new OracleCommand(sql, conn);
-                        cmd.Parameters.Add(":ID", budgetId);
-                        cmd.ExecuteNonQuery();
+                string sql = "DELETE FROM BUDGETS WHERE BUDGET_ID = :ID";
 
-                        LoadBudgetData();
-                        ClearInput();
-                    }
-                    catch (Exception ex) { MessageBox.Show("삭제 실패: " + ex.Message); }
-                }
+                OracleCommand cmd = new OracleCommand(sql, conn);
+                cmd.Parameters.Add(":ID", id);
+                cmd.ExecuteNonQuery();
             }
-        }
 
-        // =========================================================
-        // 6. 리스트뷰 클릭 시 입력창 채우기
-        // =========================================================
-        private void ListView1_SelectedIndexChanged(object sender, EventArgs e)
-        {
-            if (listView1.SelectedItems.Count == 0) return;
-
-            ListViewItem item = listView1.SelectedItems[0];
-
-            // 1. 카테고리 이름으로 콤보박스 선택
-            string categoryName = item.SubItems[1].Text;
-            cmbMainCategory.Text = categoryName;
-
-            // 2. 금액 (쉼표 제거 후 텍스트박스에 넣기)
-            txtAmount.Text = item.SubItems[2].Text.Replace(",", "");
-
-            // 3. 메모 (DB에 없어서 그냥 비워두거나 UI 값 넣음)
-            txtMemo.Text = item.SubItems[3].Text;
+            LoadThisMonthBudget();
+            LoadBudgetExpenseChart();
+            ClearInput();
         }
 
         private void ClearInput()
         {
             cmbMainCategory.SelectedIndex = -1;
             txtAmount.Clear();
-            txtMemo.Clear();
-            listView1.SelectedItems.Clear(); // 선택 해제
         }
     }
 }
